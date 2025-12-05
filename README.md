@@ -1,6 +1,6 @@
 # WAN2GP Hide UI Plugin
 
-This is a plugin for the [WAN2GP](https://github.com/blepping/wan2gp) application that adds a floating menu to the user interface. This menu allows you to toggle the visibility of various UI elements, making it easier to focus on specific sections of the interface, especially on mobile devices.
+This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) application that adds a floating menu to the user interface. This menu allows you to toggle the visibility of various UI elements, making it easier to focus on specific sections of the interface, especially on mobile devices.
 
 ## Features
 
