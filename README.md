@@ -1,79 +1,150 @@
 # WAN2GP Hide UI Plugin
 
-This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) application that adds a floating menu to the user interface. This menu allows you to toggle the visibility of various UI elements, making it easier to focus on specific sections of the interface, especially on mobile devices.
+This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) application that adds a floating menu to the user interface. This menu allows you to toggle the visibility of various UI elements with a streamlined **Normal Mode** for everyday use and a powerful **Edit Mode** for advanced customization.
 
 ![compact_example](https://github.com/user-attachments/assets/73dd5c32-4b60-48ae-8baf-db2423dc1b87)
 
 ## Features
 
-- **Floating Menu:** A convenient, collapsible menu that floats on the bottom right of the screen.
-- **Interactive Element Picker:** Click "➕ Add Element" to enter picker mode, hover to highlight elements, and click to add them to your toggle list.
-- **Custom Element Management:** Add, rename, and delete custom UI elements with ease.
-- **13 Default Elements:** Pre-configured toggles for common WAN2GP UI elements like Header, Model Selector, Prompt Options, etc.
-- **localStorage Persistence:** All custom elements and visibility preferences are saved automatically and persist between sessions.
-- **Show/Hide All:** Quickly toggle the visibility of all elements at once.
-- **Safe Hiding:** The plugin safely hides elements and collapses empty parent containers to reclaim screen space without breaking the Gradio layout.
-- **Element Counter:** See how many elements you have (default + custom) in the menu header.
+### Two-Tiered Interface
+- **Normal Mode** - Clean, simplified view for everyday use:
+  - Large "Show Default" button to reset all elements to their default state
+  - "Show/Hide All" and "Edit" buttons for quick access
+  - Compact element list showing only checkboxes, names, and ⭐ for default-visible elements
+  
+- **Edit Mode** - Full-featured management interface:
+  - Drag-and-drop reordering (≡) for all elements
+  - Clickable star badges (⭐/☆) to set default visibility state
+  - "Cached" badges showing localStorage-only changes
+  - Edit (✏️) and Delete (✕) buttons for all elements
+  - Add New Element, Export, and Clear Cached buttons
+
+### Core Features
+- **Floating Menu** - Convenient, collapsible menu in the bottom right corner
+- **Interactive Element Picker** - Click "➕ Add New Element" to enter picker mode, hover to highlight elements, and click to add them
+- **Unified Element Management** - All 13 default elements plus custom elements are fully editable (rename, delete, reorder)
+- **Configuration Persistence** - All elements stored in `config.json` with localStorage for temporary changes
+- **Smart Caching** - See which elements have been modified with "Cached" badges
+- **Safe Hiding** - Elements are safely hidden and parent containers collapsed to reclaim screen space
 
 ## Installation
 
-1.  Clone the repository or make a folder called wan2gp-hideUI in the plugins folder for wan2gp and place the `plugin.py` file into the folder.
-2.  Restart the WAN2GP application.
+1. Clone the repository or create a folder called `wan2gp-hideUI` in the WAN2GP plugins folder
+2. Place `plugin.py` and `config.json` into the folder
+3. Restart the WAN2GP application
 
 ## How to Use
 
-Once installed, a "☰ UI" button will appear in the bottom right corner of the WAN2GP interface. Click this button to open the menu.
+### Opening the Menu
 
-The menu contains checkboxes for all available UI elements (default and custom). Uncheck a box to hide the corresponding element, and check it to show it again. The "Show/Hide All" checkbox at the top of the menu can be used to toggle all elements at once.
+Click the **☰ UI** button in the bottom right corner. Click **✕ Close** to close the menu.
 
-Click the "✕ Close" button to close the menu.
+### Normal Mode (Default)
 
-### Adding Custom Elements
+Perfect for everyday use with a clean interface:
 
-With the new interactive element picker, you can easily add any UI element to your toggle list:
+1. **Show Default** - Large blue button that resets all elements to their default visibility state (enables ⭐ elements, disables others)
+2. **Show/Hide All** - Small grey button to toggle all elements at once
+3. **Edit** - Small grey button to switch to Edit Mode for advanced features
+4. **Element List** - Compact checkboxes with names and ⭐ indicators for default-visible elements
 
-1. **Open the menu** - Click the "☰ UI" button in the bottom right corner
-2. **Enter picker mode** - Click the "➕ Add Element" button
-3. **Select an element** - Hover over any UI element (it will be highlighted with a blue outline), then click it
-4. **Name it** - Enter a custom name for the element in the prompt
-5. **Done!** - The element will appear in your menu with a delete button (🗑️)
+### Edit Mode
 
-Your custom elements are automatically saved in browser localStorage and will persist between sessions.
+Access full management features by clicking the **Edit** button:
 
-### Managing Elements
+#### Managing Elements
+- **Reorder** - Drag the ≡ handle to reorder elements
+- **Rename** - Click the ✏️ button to rename any element
+- **Delete** - Click the ✕ button to remove any element
+- **Toggle Default State** - Click the star to set whether element starts visible (⭐) or hidden (☆)
 
-- **Delete custom elements** - Click the 🗑️ button next to any custom element
-- **Toggle visibility** - Check or uncheck the boxes to show/hide elements
-- **Show/Hide All** - Use the toggle at the top to quickly show or hide all elements
-- **View stats** - The menu header shows the total number of elements and how many are custom
+#### Adding Custom Elements
+1. Click **➕ Add New Element**
+2. Hover over any UI element (highlighted with blue outline)
+3. Click the element you want to add
+4. Enter a custom name in the prompt
+5. The new element appears in your list with "Cached" badge
 
-All your preferences (which elements are shown/hidden) are automatically saved and restored when you reload the page.
+#### Configuration Management
+- **📤 Export** - Export current configuration to JSON (copy and paste into `config.json`)
+- **🗑️ Clear Cached** - Remove all localStorage changes and reload from `config.json`
 
-### Changing Default Visibility
+#### Visual Indicators
+- **Cached** (yellow badge) - Element has been modified in localStorage but not saved to `config.json`
+- **⭐** (filled star) - Element starts visible by default
+- **☆** (empty star) - Element starts hidden by default
 
-The plugin comes with 13 default UI elements pre-configured. If you want to change which default elements are visible or hidden by default, you can edit the `plugin.py` file.
+### Saving Your Configuration
 
-In the `plugin.py` file, locate the `DEFAULT_TARGETS` list within the `inject_floating_buttons_js` function. For each element, the `default` property controls its initial state:
-- `default: true` makes the item visible by default
-- `default: false` makes the item hidden by default
+The plugin uses a two-tier storage system:
 
-For example, to make the "Header" visible by default, change:
+1. **Temporary Changes** (localStorage):
+   - All edits, additions, deletions, and reordering are saved here
+   - Shown with "Cached" badges in Edit Mode
+   - Persist between sessions but only in your browser
 
-```python
-{ id: "header", labels: ["deepbeepmeep"], name: "Header", default: false },
-// To:
-{ id: "header", labels: ["deepbeepmeep"], name: "Header", default: true },
-```
-
-Save the file and restart the WAN2GP application for the changes to take effect.
+2. **Permanent Configuration** (`config.json`):
+   - Click **📤 Export** to get JSON of your current configuration
+   - Manually paste into `config.json` file
+   - Click **🗑️ Clear Cached** to reload from file
+   - Changes apply across all browsers and devices
 
 ## Configuration
 
-The plugin stores two types of data in browser localStorage:
+### Default Elements
 
--   **`wan2gp_hideui_custom`**: Custom UI elements you've added using the element picker
--   **`wan2gp_hideui_prefs`**: Your visibility preferences for all elements
+The plugin includes 13 pre-configured UI elements in `config.json`:
+- Header
+- Model Selector
+- Prompt Options
+- Controlnet
+- More Options
+- Image to Image
+- Output Info
+- Image Display
+- IP Adapter
+- Tools
+- Edit Button
+- Prompt Textbox
+- Footer
 
-To reset everything, you can clear your browser's localStorage for the WAN2GP site, or delete custom elements individually using the 🗑️ button.
+Each element has:
+- `id` - Unique identifier
+- `name` - Display name in menu
+- `labels` or `componentId` - How to find the element in the DOM
+- `default` - Whether element starts visible (`true`) or hidden (`false`)
 
-The `DEFAULT_TARGETS` list in `plugin.py` defines the pre-configured UI elements. You can modify this list to add more default elements or change their default visibility settings. For advanced users, you can also define elements using label-based matching (like the defaults) or component ID-based matching (like custom elements).
+### Editing config.json
+
+To change default visibility or add permanent custom elements:
+
+```json
+{
+  "elements": [
+    {
+      "id": "header",
+      "labels": ["deepbeepmeep"],
+      "name": "Header",
+      "default": false
+    },
+    // ... more elements
+  ]
+}
+```
+
+Change `default: true` to make an element visible by default, or `default: false` to hide it by default.
+
+### localStorage Keys
+
+- `wan2gp_hideui_custom` - Custom elements and modifications
+- `wan2gp_hideui_prefs` - Visibility preferences for all elements
+- `wan2gp_hideui_order` - Custom element ordering
+- `wan2gp_hideui_editMode` - Whether Edit Mode is active
+
+## Tips
+
+- Use **Normal Mode** for daily use - it's faster and cleaner
+- Switch to **Edit Mode** only when you need to customize
+- Click the star (⭐/☆) in Edit Mode to set which elements appear by default
+- Export your configuration regularly to save across devices
+- The "Show Default" button is perfect for quickly resetting to a clean state
