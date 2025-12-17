@@ -1,0 +1,116 @@
+{
+    "elements": [
+        {
+            "id": "header",
+            "labels": [
+                "deepbeepmeep"
+            ],
+            "name": "Header",
+            "default": false
+        },
+        {
+            "id": "model_selection",
+            "labels": [
+                "dropdown dropdown"
+            ],
+            "name": "Model Selector",
+            "default": true
+        },
+        {
+            "id": "model_info",
+            "labels": [
+                "Attention Mode"
+            ],
+            "name": "Model Info",
+            "default": false
+        },
+        {
+            "id": "image_input",
+            "labels": [
+                "location start vide",
+                "end image"
+            ],
+            "name": "Input Options",
+            "default": true
+        },
+        {
+            "id": "video_to_video",
+            "labels": [
+                "video to video"
+            ],
+            "name": "Text Image Options",
+            "default": true
+        },
+        {
+            "id": "enhance_prompt",
+            "labels": [
+                "enhance prompt",
+                "enhance prompt using"
+            ],
+            "name": "Enhance Prompt",
+            "default": true
+        },
+        {
+            "id": "res_group",
+            "labels": [
+                "resolution",
+                "category"
+            ],
+            "name": "Resolution Options",
+            "default": true
+        },
+        {
+            "id": "frames",
+            "labels": [
+                "number of frames"
+            ],
+            "name": "Number of Frames",
+            "default": true
+        },
+        {
+            "id": "inf_steps",
+            "labels": [
+                "number of inference steps"
+            ],
+            "name": "Inference Steps",
+            "default": false
+        },
+        {
+            "id": "settings_buttons",
+            "labels": [
+                "set settings as default",
+                "Export settings to file",
+                "reset settings"
+            ],
+            "name": "Settings Buttons",
+            "default": false
+        },
+        {
+            "id": "load_vid",
+            "labels": [
+                "load settings from video"
+            ],
+            "name": "Load from Video",
+            "default": true
+        },
+        {
+            "id": "lora",
+            "labels": [
+                "download lora",
+                "lora url"
+            ],
+            "name": "Download LoRA",
+            "default": false
+        },
+        {
+            "id": "video_info",
+            "labels": [
+                "video info"
+            ],
+            "name": "Video Info",
+            "default": true
+        }
+    ],
+    "prefs": {},
+    "order": []
+}

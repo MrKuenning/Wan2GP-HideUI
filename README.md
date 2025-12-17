@@ -7,22 +7,13 @@ This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) applic
 ## Features
 
 - **Floating Menu:** A convenient, collapsible menu that floats on the bottom right of the screen.
-- **UI Element Toggling:** Show or hide specific UI elements, such as:
-  - Header
-  - Model Selector
-  - Model Info
-  - Input Options
-  - Text Image Options
-  - Enhance Prompt
-  - Resolution Options
-  - Number of Frames
-  - Inference Steps
-  - Settings Buttons
-  - Load from Video
-  - Download LoRA
-  - Video Info
-- **Show/Hide All:** Quickly toggle the visibility of all supported UI elements.
+- **Interactive Element Picker:** Click "➕ Add Element" to enter picker mode, hover to highlight elements, and click to add them to your toggle list.
+- **Custom Element Management:** Add, rename, and delete custom UI elements with ease.
+- **13 Default Elements:** Pre-configured toggles for common WAN2GP UI elements like Header, Model Selector, Prompt Options, etc.
+- **localStorage Persistence:** All custom elements and visibility preferences are saved automatically and persist between sessions.
+- **Show/Hide All:** Quickly toggle the visibility of all elements at once.
 - **Safe Hiding:** The plugin safely hides elements and collapses empty parent containers to reclaim screen space without breaking the Gradio layout.
+- **Element Counter:** See how many elements you have (default + custom) in the menu header.
 
 ## Installation
 
@@ -33,39 +24,56 @@ This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) applic
 
 Once installed, a "☰ UI" button will appear in the bottom right corner of the WAN2GP interface. Click this button to open the menu.
 
-The menu contains a list of checkboxes corresponding to different UI elements. Uncheck a box to hide the corresponding element, and check it to show it again. The "Show/Hide All" checkbox at the top of the menu can be used to toggle all elements at once.
+The menu contains checkboxes for all available UI elements (default and custom). Uncheck a box to hide the corresponding element, and check it to show it again. The "Show/Hide All" checkbox at the top of the menu can be used to toggle all elements at once.
 
 Click the "✕ Close" button to close the menu.
 
+### Adding Custom Elements
+
+With the new interactive element picker, you can easily add any UI element to your toggle list:
+
+1. **Open the menu** - Click the "☰ UI" button in the bottom right corner
+2. **Enter picker mode** - Click the "➕ Add Element" button
+3. **Select an element** - Hover over any UI element (it will be highlighted with a blue outline), then click it
+4. **Name it** - Enter a custom name for the element in the prompt
+5. **Done!** - The element will appear in your menu with a delete button (🗑️)
+
+Your custom elements are automatically saved in browser localStorage and will persist between sessions.
+
+### Managing Elements
+
+- **Delete custom elements** - Click the 🗑️ button next to any custom element
+- **Toggle visibility** - Check or uncheck the boxes to show/hide elements
+- **Show/Hide All** - Use the toggle at the top to quickly show or hide all elements
+- **View stats** - The menu header shows the total number of elements and how many are custom
+
+All your preferences (which elements are shown/hidden) are automatically saved and restored when you reload the page.
+
 ### Changing Default Visibility
 
-The plugin comes with a mix of items that are visible and hidden by default to provide a balanced starting interface. You can customize which items are visible or hidden by default by editing the `plugin.py` file.
+The plugin comes with 13 default UI elements pre-configured. If you want to change which default elements are visible or hidden by default, you can edit the `plugin.py` file.
 
-In the `plugin.py` file, locate the `TARGETS` list within the `inject_floating_buttons_js` function. For each element, the `default` property controls its initial state:
-- `default: true` makes the item visible by default.
-- `default: false` makes the item hidden by default.
+In the `plugin.py` file, locate the `DEFAULT_TARGETS` list within the `inject_floating_buttons_js` function. For each element, the `default` property controls its initial state:
+- `default: true` makes the item visible by default
+- `default: false` makes the item hidden by default
 
-For example, to make the "Header" visible by default, you would change its entry from `false` to `true`:
+For example, to make the "Header" visible by default, change:
 
 ```python
-// From (hidden by default):
-{'id': 'header', 'labels': ['Header'], 'name': 'Header', 'default': false},
-
-// To (visible by default):
-{'id': 'header', 'labels': ['Header'], 'name': 'Header', 'default': true},
+{ id: "header", labels: ["deepbeepmeep"], name: "Header", default: false },
+// To:
+{ id: "header", labels: ["deepbeepmeep"], name: "Header", default: true },
 ```
-
-Conversely, to hide an item like the "Model Selector" by default, you would change its `default` property from `true` to `false`.
 
 Save the file and restart the WAN2GP application for the changes to take effect.
 
 ## Configuration
 
-The plugin can be configured by editing the `plugin.py` file. The `TARGETS` list at the top of the `inject_floating_buttons_js` function defines the UI elements that can be toggled. You can modify this list to add or remove elements, or change their default visibility.
+The plugin stores two types of data in browser localStorage:
 
-Each entry in the `TARGETS` list is an object with the following properties:
+-   **`wan2gp_hideui_custom`**: Custom UI elements you've added using the element picker
+-   **`wan2gp_hideui_prefs`**: Your visibility preferences for all elements
 
--   `id`: A unique identifier for the element.
--   `labels`: A list of strings used to identify the element in the UI.
--   `name`: The name of the element as it appears in the floating menu.
--   `default`: The initial visibility of the element (`true` for visible, `false` for hidden).
+To reset everything, you can clear your browser's localStorage for the WAN2GP site, or delete custom elements individually using the 🗑️ button.
+
+The `DEFAULT_TARGETS` list in `plugin.py` defines the pre-configured UI elements. You can modify this list to add more default elements or change their default visibility settings. For advanced users, you can also define elements using label-based matching (like the defaults) or component ID-based matching (like custom elements).
