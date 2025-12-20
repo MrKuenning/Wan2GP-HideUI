@@ -7,10 +7,10 @@ This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) applic
 The Version 2 update introduces a complete overhaul of the plugin, moving from a static list of toggles to a fully customizable management system. You can now add any UI element on the fly using our new interactive picker, rename items to suit your workflow, and reorder them exactly how you like.
 
 Image of the new menu hiding lots of the main ui
-![compact_example](https://github.com/user-attachments/assets/73dd5c32-4b60-48ae-8baf-db2423dc1b87)
+![2025-12-20 11_41_59-App1 - Antigravity - Concept txt●](https://github.com/user-attachments/assets/31014e63-4421-4a67-8f9f-cd99f5311ffa)
 
 Image of the editing view addind a new custom element
-![compact_example](https://github.com/user-attachments/assets/73dd5c32-4b60-48ae-8baf-db2423dc1b87)
+![2025-12-20 11_42_37-App1 - Antigravity - Concept txt●](https://github.com/user-attachments/assets/fe341db5-d8c0-4109-a944-4061c73d7103)
 
 ## Features
 
