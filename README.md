@@ -1,150 +1,74 @@
-# WAN2GP Hide UI Plugin
+# WAN2GP Hide UI Plugin v2
 
 This is a plugin for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) application that adds a floating menu to the user interface. This menu allows you to toggle the visibility of various UI elements with a streamlined **Normal Mode** for everyday use and a powerful **Edit Mode** for advanced customization.
 
+## Version 2 Update: Complete Overhaul
+
+The Version 2 update introduces a complete overhaul of the plugin, moving from a static list of toggles to a fully customizable management system. You can now add any UI element on the fly using our new interactive picker, rename items to suit your workflow, and reorder them exactly how you like.
+
+Image of the new menu hiding lots of the main ui
+![compact_example](https://github.com/user-attachments/assets/73dd5c32-4b60-48ae-8baf-db2423dc1b87)
+
+Image of the editing view addind a new custom element
 ![compact_example](https://github.com/user-attachments/assets/73dd5c32-4b60-48ae-8baf-db2423dc1b87)
 
 ## Features
 
 ### Two-Tiered Interface
 - **Normal Mode** - Clean, simplified view for everyday use:
-  - Large "Show Default" button to reset all elements to their default state
-  - "Show/Hide All" and "Edit" buttons for quick access
-  - Compact element list showing only checkboxes, names, and ⭐ for default-visible elements
+  - **Show Default** - Large primary button to reset UI to your preferred state.
+  - **Show/Hide All** - Quickly toggle everything on or off.
+  - **Edit** - Switch to management mode for deep customization.
+  - **Smart Indicators** - ⭐ icons show at a glance which items are set to start visible.
   
 - **Edit Mode** - Full-featured management interface:
-  - Drag-and-drop reordering (≡) for all elements
-  - Clickable star badges (⭐/☆) to set default visibility state
-  - "Cached" badges showing localStorage-only changes
-  - Edit (✏️) and Delete (✕) buttons for all elements
-  - Add New Element, Export, and Clear Cached buttons
+  - **Drag-and-Drop** (≡) - Change the order of elements instantly.
+  - **Default Configuration** (⭐/☆) - Choose exactly which modules enable when the plugin loads.
+  - **Element Picker** (➕) - Interactively select any part of the UI to add as a new toggle.
+  - **Quick Rename** (✏️) - Give any element a friendly name.
+  - **Caching System** - "Cached" badges show which changes are currently stored in your browser's local storage.
 
-### Core Features
-- **Floating Menu** - Convenient, collapsible menu in the bottom right corner
-- **Interactive Element Picker** - Click "➕ Add New Element" to enter picker mode, hover to highlight elements, and click to add them
-- **Unified Element Management** - All 13 default elements plus custom elements are fully editable (rename, delete, reorder)
-- **Configuration Persistence** - All elements stored in `config.json` with localStorage for temporary changes
-- **Smart Caching** - See which elements have been modified with "Cached" badges
-- **Safe Hiding** - Elements are safely hidden and parent containers collapsed to reclaim screen space
+### Core Capabilities
+- **Floating Menu** - Convenient, collapsible menu that stays out of your way.
+- **Interactive Element Picker** - Click "➕ Add New Element" to enter picker mode, hover to highlight any UI component, and click to add it to your list.
+- **Unified Management** - All 13 default elements plus any custom elements are fully editable.
+- **Configuration Persistence** - Uses `config.json` for base settings and localStorage for your personalized tweaks.
+- **Safe Hiding Logic** - Elements are safely hidden, and their parent containers are intelligently collapsed to maximize your screen real estate.
+
+## How it Works: Default Modules
+
+The core purpose of the plugin is to allow you to define exactly what your interface looks like when it first loads. 
+
+- **Starting Visible (⭐)**: Elements marked with a filled star in Edit Mode will be enabled (visible) by default when the plugin loads or when you click "Show Default".
+- **Starting Hidden (☆)**: Elements marked with an empty star will be disabled (hidden) by default.
+- **Customizing Defaults**: In **Edit Mode**, simply click the star icon next to any element to toggle its default state. These states are saved to your browser and can be exported to your `config.json` for permanent use.
 
 ## Installation
 
-1. Clone the repository or create a folder called `wan2gp-hideUI` in the WAN2GP plugins folder
-2. Place `plugin.py` and `config.json` into the folder
-3. Restart the WAN2GP application
+1. Clone the repository or create a folder called `wan2gp-hideUI` in the WAN2GP plugins folder.
+2. Place `plugin.py` and `config.json` into the folder.
+3. Restart the WAN2GP application.
 
-## How to Use
+## Usage Guide
 
 ### Opening the Menu
-
 Click the **☰ UI** button in the bottom right corner. Click **✕ Close** to close the menu.
 
-### Normal Mode (Default)
+### Normal Mode (Daily Use)
+1. **Show Default**: Resets all elements to the specific state you've chosen as "default".
+2. **Toggle List**: Check or uncheck boxes to hide/show elements immediately.
 
-Perfect for everyday use with a clean interface:
+### Edit Mode (Setup & Management)
+1. **Add Element**: Click the blue plus button, then click any part of the WAN2GP interface to add it to your toggle list.
+2. **Reorder**: Drag the ≡ handle to move items up or down.
+3. **Rename/Delete**: Use the yellow pencil to rename or the red X to delete.
+4. **Export**: Use the **📤 Export** button to get a JSON snippet of your custom setup. Paste this into `config.json` to make your changes permanent across all browsers.
 
-1. **Show Default** - Large blue button that resets all elements to their default visibility state (enables ⭐ elements, disables others)
-2. **Show/Hide All** - Small grey button to toggle all elements at once
-3. **Edit** - Small grey button to switch to Edit Mode for advanced features
-4. **Element List** - Compact checkboxes with names and ⭐ indicators for default-visible elements
+## Storage & Persistence
 
-### Edit Mode
+The plugin uses a hybrid storage system:
+- **`config.json`**: This is the source of truth for the plugin. When you restart the app or click "Reset", the plugin reloads from this file.
+- **LocalStorage**: Your real-time edits (new elements, renamed items, custom order) are saved in your browser. These are marked with **"Cached"** badges in Edit Mode until they are exported to the JSON file.
 
-Access full management features by clicking the **Edit** button:
-
-#### Managing Elements
-- **Reorder** - Drag the ≡ handle to reorder elements
-- **Rename** - Click the ✏️ button to rename any element
-- **Delete** - Click the ✕ button to remove any element
-- **Toggle Default State** - Click the star to set whether element starts visible (⭐) or hidden (☆)
-
-#### Adding Custom Elements
-1. Click **➕ Add New Element**
-2. Hover over any UI element (highlighted with blue outline)
-3. Click the element you want to add
-4. Enter a custom name in the prompt
-5. The new element appears in your list with "Cached" badge
-
-#### Configuration Management
-- **📤 Export** - Export current configuration to JSON (copy and paste into `config.json`)
-- **🗑️ Clear Cached** - Remove all localStorage changes and reload from `config.json`
-
-#### Visual Indicators
-- **Cached** (yellow badge) - Element has been modified in localStorage but not saved to `config.json`
-- **⭐** (filled star) - Element starts visible by default
-- **☆** (empty star) - Element starts hidden by default
-
-### Saving Your Configuration
-
-The plugin uses a two-tier storage system:
-
-1. **Temporary Changes** (localStorage):
-   - All edits, additions, deletions, and reordering are saved here
-   - Shown with "Cached" badges in Edit Mode
-   - Persist between sessions but only in your browser
-
-2. **Permanent Configuration** (`config.json`):
-   - Click **📤 Export** to get JSON of your current configuration
-   - Manually paste into `config.json` file
-   - Click **🗑️ Clear Cached** to reload from file
-   - Changes apply across all browsers and devices
-
-## Configuration
-
-### Default Elements
-
-The plugin includes 13 pre-configured UI elements in `config.json`:
-- Header
-- Model Selector
-- Prompt Options
-- Controlnet
-- More Options
-- Image to Image
-- Output Info
-- Image Display
-- IP Adapter
-- Tools
-- Edit Button
-- Prompt Textbox
-- Footer
-
-Each element has:
-- `id` - Unique identifier
-- `name` - Display name in menu
-- `labels` or `componentId` - How to find the element in the DOM
-- `default` - Whether element starts visible (`true`) or hidden (`false`)
-
-### Editing config.json
-
-To change default visibility or add permanent custom elements:
-
-```json
-{
-  "elements": [
-    {
-      "id": "header",
-      "labels": ["deepbeepmeep"],
-      "name": "Header",
-      "default": false
-    },
-    // ... more elements
-  ]
-}
-```
-
-Change `default: true` to make an element visible by default, or `default: false` to hide it by default.
-
-### localStorage Keys
-
-- `wan2gp_hideui_custom` - Custom elements and modifications
-- `wan2gp_hideui_prefs` - Visibility preferences for all elements
-- `wan2gp_hideui_order` - Custom element ordering
-- `wan2gp_hideui_editMode` - Whether Edit Mode is active
-
-## Tips
-
-- Use **Normal Mode** for daily use - it's faster and cleaner
-- Switch to **Edit Mode** only when you need to customize
-- Click the star (⭐/☆) in Edit Mode to set which elements appear by default
-- Export your configuration regularly to save across devices
-- The "Show Default" button is perfect for quickly resetting to a clean state
+---
+*Created for the [WAN2GP](https://github.com/deepbeepmeep/Wan2GP) community.*
