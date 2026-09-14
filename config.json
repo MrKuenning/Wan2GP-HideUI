@@ -1,4 +1,85 @@
 {
+  "activePreset": "1",
+  "presets": {
+    "1": {
+      "name": "Standard",
+      "states": {
+        "header": false,
+        "model_selection": true,
+        "model_info": false,
+        "resource_bars": false,
+        "custom_1789355460302": true,
+        "video_to_video": true,
+        "media_drop": true,
+        "custom_1789355180222": true,
+        "audio_source": true,
+        "enhance_prompt": false,
+        "audio_refinement_extra_phase": false,
+        "res_group": true,
+        "inf_steps": true,
+        "frames": true,
+        "number_of_images_to_generate": true,
+        "settings_buttons": false,
+        "load_vid": false,
+        "lora_url": false,
+        "custom_1789358361357": true,
+        "late_post_processing": true,
+        "queue_management": true
+      }
+    },
+    "2": {
+      "name": "Minimal",
+      "states": {
+        "header": false,
+        "model_selection": true,
+        "model_info": false,
+        "resource_bars": false,
+        "custom_1789355460302": true,
+        "video_to_video": true,
+        "media_drop": true,
+        "custom_1789355180222": false,
+        "audio_source": false,
+        "enhance_prompt": false,
+        "audio_refinement_extra_phase": false,
+        "res_group": false,
+        "inf_steps": false,
+        "frames": false,
+        "number_of_images_to_generate": false,
+        "settings_buttons": false,
+        "load_vid": false,
+        "lora_url": false,
+        "custom_1789358361357": false,
+        "late_post_processing": false,
+        "queue_management": true
+      }
+    },
+    "3": {
+      "name": "Mobile",
+      "states": {
+        "header": false,
+        "model_selection": false,
+        "model_info": false,
+        "resource_bars": false,
+        "custom_1789355460302": true,
+        "video_to_video": true,
+        "media_drop": false,
+        "custom_1789355180222": false,
+        "audio_source": false,
+        "enhance_prompt": false,
+        "audio_refinement_extra_phase": false,
+        "res_group": false,
+        "inf_steps": false,
+        "frames": false,
+        "number_of_images_to_generate": false,
+        "settings_buttons": false,
+        "load_vid": false,
+        "lora_url": false,
+        "custom_1789358361357": false,
+        "late_post_processing": false,
+        "queue_management": true
+      }
+    }
+  },
   "elements": [
     {
       "id": "header",
@@ -10,7 +91,6 @@
       ],
       "cssSelector": "h1:has(sup)",
       "group": "Interface",
-      "mode": "hide",
       "default": false
     },
     {
@@ -25,7 +105,6 @@
         "model checkpoint"
       ],
       "group": "Model",
-      "mode": "compact",
       "default": false
     },
     {
@@ -41,7 +120,6 @@
       ],
       "cssSelector": ".wangp-model-info-host, .wangp-model-info-trigger",
       "group": "Model",
-      "mode": "hide",
       "default": false
     },
     {
@@ -58,7 +136,6 @@
       ],
       "cssSelector": "#wangp-system-stats, .stats-container",
       "group": "Interface",
-      "mode": "hide",
       "default": false
     },
     {
@@ -68,8 +145,7 @@
       "labels": [
         "dropdown"
       ],
-      "group": "Generation",
-      "mode": "compact",
+      "group": "Prompting",
       "default": true
     },
     {
@@ -88,8 +164,7 @@
         "continue video",
         "end image"
       ],
-      "group": "Generation",
-      "mode": "hide",
+      "group": "Prompting",
       "default": true
     },
     {
@@ -104,8 +179,7 @@
         "images as starting points for new videos",
         "drop media here"
       ],
-      "group": "Generation",
-      "mode": "hide",
+      "group": "Prompting",
       "default": true
     },
     {
@@ -116,8 +190,7 @@
         "control video / frames injection"
       ],
       "group": "Generation",
-      "mode": "hide",
-      "default": false
+      "default": true
     },
     {
       "id": "audio_source",
@@ -129,8 +202,7 @@
         "audio source"
       ],
       "group": "Audio",
-      "mode": "hide",
-      "default": false
+      "default": true
     },
     {
       "id": "enhance_prompt",
@@ -149,7 +221,6 @@
         "enhance prompt"
       ],
       "group": "Prompting",
-      "mode": "hide",
       "default": false
     },
     {
@@ -163,7 +234,6 @@
         "audio refinement"
       ],
       "group": "Audio",
-      "mode": "hide",
       "default": false
     },
     {
@@ -179,35 +249,7 @@
         "resolution budget"
       ],
       "group": "Sampling & Steps",
-      "mode": "hide",
       "default": true
-    },
-    {
-      "id": "frames",
-      "name": "Number of Frames",
-      "componentId": "component-293",
-      "labels": [
-        "number of frames"
-      ],
-      "group": "Sampling & Steps",
-      "mode": "hide",
-      "default": true
-    },
-    {
-      "id": "number_of_images_to_generate",
-      "name": "Number of Images to Generate",
-      "componentId": [
-        "component-291",
-        "component-292",
-        "component-182"
-      ],
-      "labels": [
-        "number of images to generate",
-        "images to generate"
-      ],
-      "group": "Sampling & Steps",
-      "mode": "hide",
-      "default": false
     },
     {
       "id": "inf_steps",
@@ -221,7 +263,26 @@
         "inference steps"
       ],
       "group": "Sampling & Steps",
-      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "frames",
+      "name": "Number of Frames",
+      "componentId": "component-293",
+      "labels": [
+        "number of frames"
+      ],
+      "group": "Sampling & Steps",
+      "default": true
+    },
+    {
+      "id": "number_of_images_to_generate",
+      "name": "Number of Images to Generate",
+      "labels": [
+        "number of images to generate",
+        "images to generate"
+      ],
+      "group": "Sampling & Steps",
       "default": true
     },
     {
@@ -244,8 +305,7 @@
         "export settings to file",
         "reset settings"
       ],
-      "group": "Settings",
-      "mode": "hide",
+      "group": "Interface",
       "default": false
     },
     {
@@ -260,8 +320,7 @@
         "load settings from video",
         "load from video"
       ],
-      "group": "Settings",
-      "mode": "hide",
+      "group": "Interface",
       "default": false
     },
     {
@@ -279,8 +338,7 @@
       "buttonText": [
         "download lora"
       ],
-      "group": "LoRAs",
-      "mode": "hide",
+      "group": "Interface",
       "default": false
     },
     {
@@ -291,7 +349,6 @@
         "ready"
       ],
       "group": "Queue",
-      "mode": "compact",
       "default": true
     },
     {
@@ -308,8 +365,7 @@
         "import media"
       ],
       "group": "Post-Processing",
-      "mode": "hide",
-      "default": false
+      "default": true
     },
     {
       "id": "queue_management",
@@ -327,8 +383,7 @@
         "queue management"
       ],
       "group": "Queue",
-      "mode": "hide",
-      "default": false
+      "default": true
     }
   ],
   "order": [
@@ -344,9 +399,9 @@
     "enhance_prompt",
     "audio_refinement_extra_phase",
     "res_group",
+    "inf_steps",
     "frames",
     "number_of_images_to_generate",
-    "inf_steps",
     "settings_buttons",
     "load_vid",
     "lora_url",

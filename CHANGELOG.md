@@ -4,6 +4,31 @@ All notable changes to the **Wan2GP HideUI Plugin** are documented in this file.
 
 ---
 
+## [4.3.0] - 2026-09-14
+
+### Added
+- **Multi-Preset System (Presets 1, 2, 3)**:
+  - Added dedicated Preset switching buttons at the top of the menu:
+    - **1: Standard**: Everyday workflow with balanced generation parameters.
+    - **2: Minimal**: Essential generation controls only (model selection, presets, video-to-video, media drop, resolution, frames, queue).
+    - **3: Full Focus**: Clean, ultra-minimal workspace showing only prompt inputs and queue generate.
+  - **Active Preset Indicator**: Vivid blue glow (`#2563eb`, `box-shadow`) highlighting which preset is currently active.
+  - **Instant Preset Switching**: Tap any preset button to instantly toggle all 21 elements and checkboxes without page reload or scroll jumping.
+  - **Save to Preset Button**: Directly save your current toggle configuration into the active preset (`[💾 Save to P{id}]`) with instant visual confirmation (`✓ Saved P{id}!`).
+  - **Edit Mode Preset Renaming**: Edit Mode features a top preset bar (`[✏️ P1: Name] [✏️ P2: Name] [✏️ P3: Name]`) to quickly rename any preset.
+  - **Config & Session Persistence**: Full support for `activePreset` and `presets` in `config.json`, browser `localStorage`, and `sessionStorage`.
+  - **Wider Menu Layout**: Expanded `#floating-menu` width to `min-width: 360px; max-width: min(460px, calc(100vw - 32px))` to provide generous breathing room for preset names and action buttons without text truncation.
+  - **Dedicated "Show All" (Toggle All On) & "Hide All"**: Replaced ambiguous `Show/Hide All` toggle with two dedicated, explicit action buttons:
+    - **`[ Show All ]`**: Instantly enables all 21 elements and turns every checkbox ON.
+    - **`[ Hide All ]`**: Instantly hides all 21 elements and turns every checkbox OFF.
+  - **Per-Element 1 2 3 Preset Toggles in Edit Mode**: Replaced the default star icon with three interactive preset buttons (`[ 1 ]`, `[ 2 ]`, `[ 3 ]`) on every row in Edit Mode. Tap any number to immediately toggle whether that element is enabled for that preset, with live visibility updates if that preset is currently active.
+  - **Removed Hide/Compact Toggle**: Streamlined element control to standard hide/show behavior, removing the compact badge toggle for a simpler, more predictable experience.
+  - **Compact Space-Saving Edit Mode**: Group pills are now hidden in Edit Mode to give element names, 1-2-3 toggles, and action buttons maximum breathing room.
+  - **Export & Import Sync**: Configuration exports and imports faithfully save and restore all 3 preset names and toggle states without `prefs` pollution.
+  - **Reset from File**: Resetting restores initial default presets and active preset from `config.json`.
+
+---
+
 ## [4.2.0] - 2026-09-13
 
 ### Added

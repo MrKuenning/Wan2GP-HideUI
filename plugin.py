@@ -22,13 +22,15 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     return json.load(f)
             except Exception as e:
                 print(f"[Wan2GP-HideUI] Error loading config.json: {e}")
-                return {"elements": [], "order": []}
-        return {"elements": [], "order": []}
+                return {"elements": [], "order": [], "presets": {}, "activePreset": "1"}
+        return {"elements": [], "order": [], "presets": {}, "activePreset": "1"}
 
-    def save_config(self, elements, order, prefs=None):
+    def save_config(self, elements, order, presets=None, activePreset="1", prefs=None):
         """Save configuration to config.json"""
         config_path = os.path.join(os.path.dirname(__file__), 'config.json')
         config_data = {
+            "activePreset": activePreset,
+            "presets": presets or {},
             "elements": elements,
             "order": order
         }
@@ -51,12 +53,14 @@ class MobileTogglePlugin(WAN2GPPlugin):
 
         js_code = r"""
         (function(){
-            const STORAGE_KEY_CUSTOM = "wan2gp_hideui_custom";
-            const STORAGE_KEY_PREFS  = "wan2gp_hideui_prefs";
-            const STORAGE_KEY_ORDER  = "wan2gp_hideui_order";
-            const STORAGE_KEY_EDIT   = "wan2gp_hideui_editMode";
-            const STORAGE_KEY_OPEN   = "wan2gp_hideui_open";
-            const SESSION_KEY_INIT   = "wan2gp_hideui_session_init";
+            const STORAGE_KEY_CUSTOM   = "wan2gp_hideui_custom";
+            const STORAGE_KEY_PREFS    = "wan2gp_hideui_prefs";
+            const STORAGE_KEY_ORDER    = "wan2gp_hideui_order";
+            const STORAGE_KEY_EDIT     = "wan2gp_hideui_editMode";
+            const STORAGE_KEY_OPEN     = "wan2gp_hideui_open";
+            const STORAGE_KEY_PRESETS  = "wan2gp_hideui_presets";
+            const STORAGE_KEY_ACTIVE_PRESET = "wan2gp_hideui_active_preset";
+            const SESSION_KEY_INIT     = "wan2gp_hideui_session_init";
 
             const FILE_CONFIG = __CONFIG_JSON_PLACEHOLDER__;
 
@@ -70,6 +74,117 @@ class MobileTogglePlugin(WAN2GPPlugin):
             let searchQuery = "";
 
             // --- STORAGE INITIALIZATION & HELPERS ---
+
+            function getDefaultPresets() {
+                if (FILE_CONFIG.presets && typeof FILE_CONFIG.presets === "object" && Object.keys(FILE_CONFIG.presets).length > 0) {
+                    return JSON.parse(JSON.stringify(FILE_CONFIG.presets));
+                }
+                const p1States = {};
+                allTargets.forEach(t => { p1States[t.id] = (t.default !== false); });
+                return {
+                    "1": { "name": "Standard", "states": p1States },
+                    "2": { "name": "Minimal", "states": p1States },
+                    "3": { "name": "Full Focus", "states": p1States }
+                };
+            }
+
+            function loadPresets() {
+                try {
+                    const saved = localStorage.getItem(STORAGE_KEY_PRESETS);
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+                            return parsed;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("[Wan2GP-HideUI] Failed to load presets:", e);
+                }
+                const defaults = getDefaultPresets();
+                savePresets(defaults);
+                return defaults;
+            }
+
+            function savePresets(presets) {
+                try {
+                    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
+                } catch (e) {
+                    console.error("[Wan2GP-HideUI] Failed to save presets:", e);
+                }
+            }
+
+            function getActivePresetId() {
+                const active = localStorage.getItem(STORAGE_KEY_ACTIVE_PRESET);
+                const presets = loadPresets();
+                if (active && presets[active]) return active;
+                return FILE_CONFIG.activePreset || "1";
+            }
+
+            function setActivePresetId(id) {
+                try {
+                    localStorage.setItem(STORAGE_KEY_ACTIVE_PRESET, id);
+                } catch (e) {}
+            }
+
+            function applyPreset(presetId) {
+                const presets = loadPresets();
+                const preset = presets[presetId];
+                if (!preset || !preset.states) return;
+
+                setActivePresetId(presetId);
+                const states = preset.states;
+
+                allTargets.forEach(target => {
+                    const shouldShow = (states[target.id] !== undefined)
+                        ? states[target.id]
+                        : (target.default !== false);
+
+                    setTargetVisibility(target, shouldShow);
+                    const cb = document.getElementById(`cb-${target.id}`);
+                    if (cb) cb.checked = shouldShow;
+                });
+
+                savePreferences();
+                updatePresetButtonsUI();
+            }
+
+            function saveCurrentToActivePreset() {
+                const activeId = getActivePresetId();
+                const presets = loadPresets();
+                if (!presets[activeId]) {
+                    presets[activeId] = { name: `Preset ${activeId}`, states: {} };
+                }
+
+                const currentStates = {};
+                allTargets.forEach(target => {
+                    const cb = document.getElementById(`cb-${target.id}`);
+                    if (cb) currentStates[target.id] = cb.checked;
+                });
+
+                presets[activeId].states = currentStates;
+                savePresets(presets);
+                return activeId;
+            }
+
+            function updatePresetButtonsUI() {
+                const activeId = getActivePresetId();
+                const presets = loadPresets();
+                const pBtns = document.querySelectorAll(".hideui-preset-btn");
+                pBtns.forEach(btn => {
+                    const pid = btn.dataset.presetId;
+                    if (pid === activeId) {
+                        btn.classList.add("is-active");
+                    } else {
+                        btn.classList.remove("is-active");
+                    }
+                });
+                const saveBtn = document.getElementById("wan2gp-save-preset-btn");
+                if (saveBtn) {
+                    const pData = presets[activeId] || { name: `P${activeId}` };
+                    saveBtn.textContent = `💾 Save P${activeId}`;
+                    saveBtn.title = `Save current toggle states into Preset ${activeId} (${pData.name})`;
+                }
+            }
 
             function loadCustomElements() {
                 try {
@@ -98,13 +213,20 @@ class MobileTogglePlugin(WAN2GPPlugin):
 
             function loadPreferences() {
                 try {
-                    // Fresh session initialization: default states are respected on first load
+                    // Fresh session initialization: active preset states are respected on first load
                     const isSessionInit = sessionStorage.getItem(SESSION_KEY_INIT);
                     if (!isSessionInit) {
                         sessionStorage.setItem(SESSION_KEY_INIT, "true");
+                        const activeId = getActivePresetId();
+                        const presets = loadPresets();
+                        const activePreset = presets[activeId];
                         const defaultPrefs = {};
                         allTargets.forEach(t => {
-                            defaultPrefs[t.id] = (t.default !== false);
+                            if (activePreset && activePreset.states && activePreset.states[t.id] !== undefined) {
+                                defaultPrefs[t.id] = activePreset.states[t.id];
+                            } else {
+                                defaultPrefs[t.id] = (t.default !== false);
+                            }
                         });
                         localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(defaultPrefs));
                         return defaultPrefs;
@@ -179,7 +301,6 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 if (!orig) return true; // New custom element
                 if (orig.name !== target.name) return true; // Renamed
                 if ((orig.default !== false) !== (target.default !== false)) return true; // Default changed
-                if ((orig.mode || 'hide') !== (target.mode || 'hide')) return true; // Mode changed
                 return false;
             }
 
@@ -211,9 +332,9 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         display: none;
                         flex-direction: column;
                         gap: 8px;
-                        min-width: 300px;
-                        max-width: min(390px, calc(100vw - 32px));
-                        max-height: 80vh;
+                        min-width: 360px;
+                        max-width: min(460px, calc(100vw - 32px));
+                        max-height: 82vh;
                         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
                         color: var(--studio-button-text, #e6f2fc);
                         backdrop-filter: blur(18px) saturate(1.2);
@@ -320,6 +441,69 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         background: var(--studio-soft, #1b3c59);
                         color: var(--studio-button-text, #e6f2fc);
                     }
+                    .hideui-preset-bar {
+                        display: flex;
+                        gap: 5px;
+                        width: 100%;
+                        margin-bottom: 2px;
+                    }
+                    .hideui-preset-btn {
+                        flex: 1;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 3px;
+                        padding: 7px 4px;
+                        border-radius: 6px;
+                        border: 1px solid var(--studio-border, #467eaf);
+                        background: var(--studio-button, #205786);
+                        color: var(--studio-button-text, #e6f2fc);
+                        font-size: 11px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.15s ease;
+                        text-align: center;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        box-sizing: border-box;
+                    }
+                    .hideui-preset-btn:hover {
+                        background: var(--studio-button-hover, #2b6ba8);
+                        filter: brightness(1.1);
+                    }
+                    .hideui-preset-btn.is-active {
+                        background: #2563eb;
+                        color: #ffffff;
+                        border-color: #60a5fa;
+                        box-shadow: 0 0 10px rgba(37, 99, 235, 0.45);
+                    }
+                    .hideui-save-preset-btn {
+                        background: var(--studio-soft, #1b3c59);
+                        color: var(--studio-label, #a4cef0);
+                        border: 1px solid var(--studio-border, #467eaf);
+                        font-weight: 600;
+                        font-size: 11px;
+                    }
+                    .hideui-save-preset-btn:hover {
+                        background: #16a34a;
+                        color: #ffffff;
+                        border-color: #22c55e;
+                    }
+                    .hideui-preset-edit-bar {
+                        display: flex;
+                        gap: 4px;
+                        width: 100%;
+                        margin-bottom: 2px;
+                    }
+                    .hideui-preset-edit-btn {
+                        flex: 1;
+                        font-size: 10px;
+                        padding: 5px 3px;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    }
                     .hideui-search-input {
                         width: 100%;
                         box-sizing: border-box;
@@ -388,23 +572,49 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         padding: 1px 5px;
                         border-radius: 3px;
                     }
-                    .hideui-badge-mode {
-                        font-size: 9px;
-                        font-weight: 600;
-                        padding: 1px 5px;
-                        border-radius: 3px;
+                    .hideui-row-presets {
+                        display: inline-flex;
+                        gap: 3px;
+                        align-items: center;
+                        margin: 0 4px;
+                    }
+                    .hideui-row-preset-btn {
+                        width: 22px;
+                        height: 22px;
+                        padding: 0;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        font-weight: 700;
+                        line-height: 1;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
                         cursor: pointer;
-                        border: none;
-                    }
-                    .hideui-badge-mode.mode-compact {
-                        background: rgba(56, 189, 248, 0.2);
-                        color: #38bdf8;
-                        border: 1px solid rgba(56, 189, 248, 0.4);
-                    }
-                    .hideui-badge-mode.mode-hide {
-                        background: var(--studio-disabled, #283443);
-                        color: var(--studio-disabled-text, #97a3b2);
                         border: 1px solid var(--studio-border, #467eaf);
+                        transition: all 0.15s ease;
+                        box-sizing: border-box;
+                    }
+                    .hideui-row-preset-btn.is-enabled {
+                        background: #2563eb;
+                        color: #ffffff;
+                        border-color: #60a5fa;
+                        box-shadow: 0 0 6px rgba(37, 99, 235, 0.4);
+                    }
+                    .hideui-row-preset-btn.is-disabled {
+                        background: rgba(16, 35, 56, 0.8);
+                        color: var(--studio-disabled-text, #97a3b2);
+                        border-color: rgba(70, 126, 175, 0.3);
+                        opacity: 0.55;
+                    }
+                    .hideui-row-preset-btn.is-disabled:hover {
+                        background: var(--studio-soft, #1b3c59);
+                        color: var(--studio-button-text, #e6f2fc);
+                        opacity: 1;
+                        border-color: var(--studio-border, #467eaf);
+                    }
+                    .hideui-row-preset-btn.is-enabled:hover {
+                        background: #1d4ed8;
+                        filter: brightness(1.1);
                     }
                     .hideui-group-pill {
                         font-size: 9px;
@@ -673,27 +883,12 @@ class MobileTogglePlugin(WAN2GPPlugin):
 
             function setTargetVisibility(target, shouldShow) {
                 const elements = findTargetsForElement(target);
-                const isCompactMode = (target.mode === 'compact');
-
                 elements.forEach(el => {
-                    if (isCompactMode) {
-                        if (shouldShow) {
-                            // Normal expanded state
-                            el.classList.remove("wangp-hideui-compact");
-                            safeShow(el);
-                        } else {
-                            // Minimized compact state
-                            el.classList.add("wangp-hideui-compact");
-                            safeShow(el);
-                        }
+                    el.classList.remove("wangp-hideui-compact");
+                    if (shouldShow) {
+                        safeShow(el);
                     } else {
-                        // Standard Hide state
-                        el.classList.remove("wangp-hideui-compact");
-                        if (shouldShow) {
-                            safeShow(el);
-                        } else {
-                            safeHide(el);
-                        }
+                        safeHide(el);
                     }
                 });
             }
@@ -867,6 +1062,8 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 if (existing) existing.remove();
 
                 const config = {
+                    activePreset: getActivePresetId(),
+                    presets: loadPresets(),
                     elements: allTargets.map(t => ({
                         id: t.id,
                         name: t.name,
@@ -875,7 +1072,6 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         ...(t.cssSelector ? { cssSelector: t.cssSelector } : {}),
                         ...(t.buttonText ? { buttonText: t.buttonText } : {}),
                         ...(t.group ? { group: t.group } : {}),
-                        mode: t.mode || "hide",
                         ...(t.isCustom ? { isCustom: true } : {}),
                         default: (t.default !== false)
                     })),
@@ -1014,11 +1210,17 @@ class MobileTogglePlugin(WAN2GPPlugin):
                                     ? parsed.order
                                     : parsed.elements.map(el => el.id);
                                 saveElementOrder(newOrder);
+                                if (parsed.presets && typeof parsed.presets === "object" && Object.keys(parsed.presets).length > 0) {
+                                    savePresets(parsed.presets);
+                                }
+                                if (parsed.activePreset) {
+                                    setActivePresetId(parsed.activePreset);
+                                }
                                 localStorage.removeItem(STORAGE_KEY_PREFS);
                                 sessionStorage.removeItem(SESSION_KEY_INIT);
                                 syncTargetsFromStorage();
+                                applyPreset(getActivePresetId());
                                 renderMenu();
-                                applyVisibility();
                                 alert(`✓ Successfully loaded ${parsed.elements.length} elements from ${file.name}!`);
                             } else {
                                 alert("Invalid config format: expected an 'elements' array in JSON.");
@@ -1042,6 +1244,8 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 localStorage.removeItem(STORAGE_KEY_CUSTOM);
                 localStorage.removeItem(STORAGE_KEY_PREFS);
                 localStorage.removeItem(STORAGE_KEY_ORDER);
+                localStorage.removeItem(STORAGE_KEY_PRESETS);
+                localStorage.removeItem(STORAGE_KEY_ACTIVE_PRESET);
                 sessionStorage.removeItem(SESSION_KEY_INIT);
 
                 const initialElements = FILE_CONFIG.elements || [];
@@ -1051,10 +1255,12 @@ class MobileTogglePlugin(WAN2GPPlugin):
 
                 saveCustomElements(initialElements);
                 saveElementOrder(initialOrder);
+                savePresets(getDefaultPresets());
+                setActivePresetId(FILE_CONFIG.activePreset || "1");
 
                 syncTargetsFromStorage();
+                applyPreset(getActivePresetId());
                 renderMenu();
-                applyVisibility();
             }
 
             // --- MENU RENDERING ---
@@ -1163,8 +1369,8 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 };
                 row.appendChild(cb);
 
-                // Group Pill (if any)
-                if (target.group) {
+                // Group Pill (if any, hidden in edit mode to save space)
+                if (target.group && !isEdit) {
                     const groupPill = document.createElement("span");
                     groupPill.className = "hideui-group-pill";
                     groupPill.textContent = target.group;
@@ -1195,54 +1401,52 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     row.appendChild(badge);
                 }
 
-                // Mode toggle badge (Hide vs Compact)
-                const isCompact = (target.mode === 'compact');
                 if (isEdit) {
-                    const modeBadge = document.createElement("button");
-                    modeBadge.className = `hideui-badge-mode ${isCompact ? 'mode-compact' : 'mode-hide'}`;
-                    modeBadge.textContent = isCompact ? "Compact" : "Hide";
-                    modeBadge.title = isCompact ? "Mode: Compact (click to switch to Hide)" : "Mode: Hide (click to switch to Compact)";
-                    modeBadge.onclick = (e) => {
-                        e.stopPropagation();
-                        target.mode = isCompact ? 'hide' : 'compact';
-                        const elements = loadCustomElements();
-                        const idx = elements.findIndex(el => el.id === target.id);
-                        if (idx !== -1) {
-                            elements[idx].mode = target.mode;
-                            saveCustomElements(elements);
-                        }
-                        renderMenu();
-                        applyVisibility();
-                    };
-                    row.appendChild(modeBadge);
-                } else if (isCompact) {
-                    const modeIndicator = document.createElement("span");
-                    modeIndicator.className = "hideui-badge-mode mode-compact";
-                    modeIndicator.textContent = "Compact";
-                    modeIndicator.title = "This toggle compacts rather than completely hides the element";
-                    row.appendChild(modeIndicator);
-                }
+                    // Three preset toggles [ 1 ] [ 2 ] [ 3 ]
+                    const presetsWrapper = document.createElement("div");
+                    presetsWrapper.className = "hideui-row-presets";
 
-                // Default state indicator (Star)
-                const isDefault = (target.default !== false);
-                if (isEdit) {
-                    const starBtn = document.createElement("button");
-                    starBtn.className = "hideui-btn-icon";
-                    starBtn.textContent = isDefault ? "⭐" : "☆";
-                    starBtn.title = isDefault ? "Starts enabled by default on load (click to disable)" : "Starts hidden by default on load (click to enable)";
-                    starBtn.style.fontSize = "15px";
-                    starBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        target.default = !isDefault;
-                        const elements = loadCustomElements();
-                        const idx = elements.findIndex(el => el.id === target.id);
-                        if (idx !== -1) {
-                            elements[idx].default = target.default;
-                            saveCustomElements(elements);
-                        }
-                        renderMenu();
-                    };
-                    row.appendChild(starBtn);
+                    const currentPresets = loadPresets();
+                    ["1", "2", "3"].forEach(pid => {
+                        const pData = currentPresets[pid] || { name: `Preset ${pid}`, states: {} };
+                        const isPresetEnabled = (pData.states && pData.states[target.id] !== undefined)
+                            ? pData.states[target.id]
+                            : (target.default !== false);
+
+                        const pToggle = document.createElement("button");
+                        pToggle.className = `hideui-row-preset-btn ${isPresetEnabled ? 'is-enabled' : 'is-disabled'}`;
+                        pToggle.textContent = pid;
+                        pToggle.title = `Preset ${pid} (${pData.name}): ${isPresetEnabled ? 'Enabled' : 'Disabled'} (click to toggle)`;
+                        pToggle.onclick = (e) => {
+                            e.stopPropagation();
+                            if (!pData.states) pData.states = {};
+                            const newState = !isPresetEnabled;
+                            pData.states[target.id] = newState;
+                            currentPresets[pid] = pData;
+                            savePresets(currentPresets);
+
+                            if (pid === "1") {
+                                target.default = newState;
+                                const elements = loadCustomElements();
+                                const idx = elements.findIndex(el => el.id === target.id);
+                                if (idx !== -1) {
+                                    elements[idx].default = newState;
+                                    saveCustomElements(elements);
+                                }
+                            }
+
+                            if (getActivePresetId() === pid) {
+                                setTargetVisibility(target, newState);
+                                const currentCb = document.getElementById(`cb-${target.id}`);
+                                if (currentCb) currentCb.checked = newState;
+                                savePreferences();
+                            }
+
+                            renderMenu();
+                        };
+                        presetsWrapper.appendChild(pToggle);
+                    });
+                    row.appendChild(presetsWrapper);
 
                     // Rename button
                     const editBtn = document.createElement("button");
@@ -1285,14 +1489,6 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         }
                     };
                     row.appendChild(delBtn);
-                } else {
-                    if (isDefault) {
-                        const starSpan = document.createElement("span");
-                        starSpan.textContent = "⭐";
-                        starSpan.title = "Starts visible by default";
-                        starSpan.style.fontSize = "13px";
-                        row.appendChild(starSpan);
-                    }
                 }
 
                 return row;
@@ -1422,53 +1618,114 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     subRow.appendChild(resetBtn);
                     header.appendChild(subRow);
 
+                    // Preset Rename Bar in Edit Mode
+                    const presetEditBar = document.createElement("div");
+                    presetEditBar.className = "hideui-preset-edit-bar";
+                    const currentPresets = loadPresets();
+                    ["1", "2", "3"].forEach(pid => {
+                        const pData = currentPresets[pid] || { name: `Preset ${pid}` };
+                        const pBtn = document.createElement("button");
+                        pBtn.className = "hideui-btn hideui-preset-edit-btn";
+                        pBtn.textContent = `✏️ P${pid}: ${pData.name}`;
+                        pBtn.title = `Click to rename Preset ${pid}`;
+                        pBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            const newName = prompt(`Rename Preset ${pid}:`, pData.name);
+                            if (newName && newName.trim() && newName.trim() !== pData.name) {
+                                currentPresets[pid].name = newName.trim();
+                                savePresets(currentPresets);
+                                renderMenu();
+                            }
+                        };
+                        presetEditBar.appendChild(pBtn);
+                    });
+                    header.appendChild(presetEditBar);
+
                 } else {
-                    // Normal Mode Header
-                    const showDefaultBtn = document.createElement("button");
-                    showDefaultBtn.id = "wan2gp-show-default-btn";
-                    showDefaultBtn.className = "hideui-btn hideui-btn-primary";
-                    showDefaultBtn.textContent = "Show Default";
-                    showDefaultBtn.style.width = "100%";
-                    showDefaultBtn.style.padding = "8px 12px";
-                    showDefaultBtn.title = "Reset toggles to your default saved configuration";
-                    showDefaultBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        allTargets.forEach(target => {
-                            const defaultState = (target.default !== false);
-                            setTargetVisibility(target, defaultState);
-                            const cb = document.getElementById(`cb-${target.id}`);
-                            if (cb) cb.checked = defaultState;
-                        });
-                        savePreferences();
-                    };
-                    header.appendChild(showDefaultBtn);
+                    // Normal Mode Header: Preset Buttons Row
+                    const presetBar = document.createElement("div");
+                    presetBar.className = "hideui-preset-bar";
+                    const currentPresets = loadPresets();
+                    const activePresetId = getActivePresetId();
+
+                    ["1", "2", "3"].forEach(pid => {
+                        const pData = currentPresets[pid] || { name: `Preset ${pid}` };
+                        const pBtn = document.createElement("button");
+                        pBtn.className = `hideui-preset-btn ${pid === activePresetId ? "is-active" : ""}`;
+                        pBtn.dataset.presetId = pid;
+                        pBtn.textContent = `${pid}: ${pData.name}`;
+                        pBtn.title = `Switch to Preset ${pid}: ${pData.name}`;
+                        pBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            applyPreset(pid);
+                        };
+                        presetBar.appendChild(pBtn);
+                    });
+                    header.appendChild(presetBar);
 
                     const actionRow = document.createElement("div");
                     Object.assign(actionRow.style, {
                         display: "flex",
-                        gap: "6px"
+                        gap: "5px"
                     });
 
-                    const toggleAllBtn = document.createElement("button");
-                    toggleAllBtn.className = "hideui-btn";
-                    toggleAllBtn.textContent = "Show/Hide All";
-                    toggleAllBtn.style.flex = "1";
-                    let allHidden = false;
-                    toggleAllBtn.onclick = (e) => {
+                    // Save to Current Preset Button
+                    const savePresetBtn = document.createElement("button");
+                    savePresetBtn.id = "wan2gp-save-preset-btn";
+                    savePresetBtn.className = "hideui-btn hideui-save-preset-btn";
+                    savePresetBtn.style.flex = "1.1";
+                    const curPData = currentPresets[activePresetId] || { name: `Preset ${activePresetId}` };
+                    savePresetBtn.textContent = `💾 Save P${activePresetId}`;
+                    savePresetBtn.title = `Save current toggle states into Preset ${activePresetId} (${curPData.name})`;
+                    savePresetBtn.onclick = (e) => {
                         e.stopPropagation();
-                        allHidden = !allHidden;
+                        const savedId = saveCurrentToActivePreset();
+                        savePresetBtn.textContent = `✓ Saved P${savedId}!`;
+                        setTimeout(() => {
+                            updatePresetButtonsUI();
+                        }, 1800);
+                    };
+
+                    // Show All Button (Toggle All ON)
+                    const showAllBtn = document.createElement("button");
+                    showAllBtn.id = "wan2gp-show-all-btn";
+                    showAllBtn.className = "hideui-btn";
+                    showAllBtn.textContent = "Show All";
+                    showAllBtn.title = "Toggle all elements ON (make everything visible)";
+                    showAllBtn.style.flex = "1";
+                    showAllBtn.onclick = (e) => {
+                        e.stopPropagation();
                         allTargets.forEach(target => {
-                            setTargetVisibility(target, !allHidden);
+                            setTargetVisibility(target, true);
                             const cb = document.getElementById(`cb-${target.id}`);
-                            if (cb) cb.checked = !allHidden;
+                            if (cb) cb.checked = true;
                         });
                         savePreferences();
                     };
 
+                    // Hide All Button (Toggle All OFF)
+                    const hideAllBtn = document.createElement("button");
+                    hideAllBtn.id = "wan2gp-hide-all-btn";
+                    hideAllBtn.className = "hideui-btn";
+                    hideAllBtn.textContent = "Hide All";
+                    hideAllBtn.title = "Toggle all elements OFF (hide everything)";
+                    hideAllBtn.style.flex = "1";
+                    hideAllBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        allTargets.forEach(target => {
+                            setTargetVisibility(target, false);
+                            const cb = document.getElementById(`cb-${target.id}`);
+                            if (cb) cb.checked = false;
+                        });
+                        savePreferences();
+                    };
+
+                    // Edit Button
                     const editBtn = document.createElement("button");
                     editBtn.className = "hideui-btn";
-                    editBtn.textContent = "Edit";
-                    editBtn.style.flex = "1";
+                    editBtn.textContent = "⚙️ Edit";
+                    editBtn.title = "Manage and customize toggles";
+                    editBtn.style.flex = "0.9";
                     editBtn.onclick = (e) => {
                         e.stopPropagation();
                         editMode = true;
@@ -1476,7 +1733,9 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         renderMenu();
                     };
 
-                    actionRow.appendChild(toggleAllBtn);
+                    actionRow.appendChild(savePresetBtn);
+                    actionRow.appendChild(showAllBtn);
+                    actionRow.appendChild(hideAllBtn);
                     actionRow.appendChild(editBtn);
                     header.appendChild(actionRow);
                 }
