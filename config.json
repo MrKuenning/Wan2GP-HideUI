@@ -1,116 +1,357 @@
 {
-    "elements": [
-        {
-            "id": "header",
-            "labels": [
-                "deepbeepmeep"
-            ],
-            "name": "Header",
-            "default": false
-        },
-        {
-            "id": "model_selection",
-            "labels": [
-                "dropdown dropdown"
-            ],
-            "name": "Model Selector",
-            "default": true
-        },
-        {
-            "id": "model_info",
-            "labels": [
-                "Attention Mode"
-            ],
-            "name": "Model Info",
-            "default": false
-        },
-        {
-            "id": "image_input",
-            "labels": [
-                "location start vide",
-                "end image"
-            ],
-            "name": "Input Options",
-            "default": true
-        },
-        {
-            "id": "video_to_video",
-            "labels": [
-                "video to video"
-            ],
-            "name": "Text Image Options",
-            "default": true
-        },
-        {
-            "id": "enhance_prompt",
-            "labels": [
-                "enhance prompt",
-                "enhance prompt using"
-            ],
-            "name": "Enhance Prompt",
-            "default": true
-        },
-        {
-            "id": "res_group",
-            "labels": [
-                "resolution",
-                "category"
-            ],
-            "name": "Resolution Options",
-            "default": true
-        },
-        {
-            "id": "frames",
-            "labels": [
-                "number of frames"
-            ],
-            "name": "Number of Frames",
-            "default": true
-        },
-        {
-            "id": "inf_steps",
-            "labels": [
-                "number of inference steps"
-            ],
-            "name": "Inference Steps",
-            "default": false
-        },
-        {
-            "id": "settings_buttons",
-            "labels": [
-                "set settings as default",
-                "Export settings to file",
-                "reset settings"
-            ],
-            "name": "Settings Buttons",
-            "default": false
-        },
-        {
-            "id": "load_vid",
-            "labels": [
-                "load settings from video"
-            ],
-            "name": "Load from Video",
-            "default": true
-        },
-        {
-            "id": "lora",
-            "labels": [
-                "download lora",
-                "lora url"
-            ],
-            "name": "Download LoRA",
-            "default": false
-        },
-        {
-            "id": "video_info",
-            "labels": [
-                "video info"
-            ],
-            "name": "Video Info",
-            "default": true
-        }
-    ],
-    "prefs": {},
-    "order": []
+  "elements": [
+    {
+      "id": "header",
+      "name": "Title",
+      "componentId": "component-1",
+      "labels": [
+        "wan gp",
+        "deepbeepmeep"
+      ],
+      "cssSelector": "h1:has(sup)",
+      "group": "Interface",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "model_selection",
+      "name": "Model Selector",
+      "componentId": [
+        "component-7"
+      ],
+      "labels": [
+        "model output filter",
+        "select model",
+        "model checkpoint"
+      ],
+      "group": "Model",
+      "mode": "compact",
+      "default": false
+    },
+    {
+      "id": "model_info",
+      "name": "Model Info",
+      "componentId": [
+        "component-38",
+        "component-39"
+      ],
+      "labels": [
+        "model info",
+        "model-info-popup"
+      ],
+      "cssSelector": ".wangp-model-info-host, .wangp-model-info-trigger",
+      "group": "Model",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "resource_bars",
+      "name": "Resource Bars",
+      "componentId": [
+        "wangp-system-stats",
+        "component-41"
+      ],
+      "labels": [
+        "stats-container",
+        "wangp-system-stats",
+        "system stats"
+      ],
+      "cssSelector": "#wangp-system-stats, .stats-container",
+      "group": "Interface",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "custom_1789355460302",
+      "name": "Presets Dropdown",
+      "componentId": "component-52",
+      "labels": [
+        "dropdown"
+      ],
+      "group": "Generation",
+      "mode": "compact",
+      "default": true
+    },
+    {
+      "id": "video_to_video",
+      "name": "Input Options",
+      "componentId": [
+        "component-76",
+        "component-77",
+        "component-78",
+        "component-79"
+      ],
+      "labels": [
+        "location",
+        "text prompt",
+        "start with image",
+        "continue video",
+        "end image"
+      ],
+      "group": "Generation",
+      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "media_drop",
+      "name": "Media Drop Box",
+      "componentId": [
+        "component-81",
+        "component-82",
+        "component-84"
+      ],
+      "labels": [
+        "images as starting points for new videos",
+        "drop media here"
+      ],
+      "group": "Generation",
+      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "custom_1789355180222",
+      "name": "Control Video / Frames Injection",
+      "componentId": "component-109",
+      "labels": [
+        "control video / frames injection"
+      ],
+      "group": "Generation",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "audio_source",
+      "name": "Audio Source",
+      "componentId": [
+        "component-214"
+      ],
+      "labels": [
+        "audio source"
+      ],
+      "group": "Audio",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "enhance_prompt",
+      "name": "Enhance Prompt",
+      "componentId": [
+        "component-254",
+        "component-255"
+      ],
+      "labels": [
+        "enhance prompt",
+        "enhance prompt using",
+        "write"
+      ],
+      "buttonText": [
+        "write",
+        "enhance prompt"
+      ],
+      "group": "Prompting",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "audio_refinement_extra_phase",
+      "name": "Audio Refinement Extra Phase",
+      "componentId": [
+        "component-270"
+      ],
+      "labels": [
+        "audio refinement extra phase",
+        "audio refinement"
+      ],
+      "group": "Audio",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "res_group",
+      "name": "Resolution Options",
+      "componentId": [
+        "component-287",
+        "wangp-resolution"
+      ],
+      "labels": [
+        "resolution",
+        "resolution category",
+        "resolution budget"
+      ],
+      "group": "Sampling & Steps",
+      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "frames",
+      "name": "Number of Frames",
+      "componentId": "component-293",
+      "labels": [
+        "number of frames"
+      ],
+      "group": "Sampling & Steps",
+      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "number_of_images_to_generate",
+      "name": "Number of Images to Generate",
+      "componentId": [
+        "component-291",
+        "component-292",
+        "component-182"
+      ],
+      "labels": [
+        "number of images to generate",
+        "images to generate"
+      ],
+      "group": "Sampling & Steps",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "inf_steps",
+      "name": "Inference Steps",
+      "componentId": [
+        "component-296",
+        "component-297"
+      ],
+      "labels": [
+        "number of inference steps",
+        "inference steps"
+      ],
+      "group": "Sampling & Steps",
+      "mode": "hide",
+      "default": true
+    },
+    {
+      "id": "settings_buttons",
+      "name": "Settings Buttons",
+      "componentId": [
+        "component-528",
+        "component-529",
+        "component-530",
+        "component-531",
+        "component-532"
+      ],
+      "labels": [
+        "set settings as default",
+        "export settings to file",
+        "reset settings"
+      ],
+      "buttonText": [
+        "set settings as default",
+        "export settings to file",
+        "reset settings"
+      ],
+      "group": "Settings",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "load_vid",
+      "name": "Load from Video / Settings",
+      "componentId": [
+        "component-534",
+        "component-535"
+      ],
+      "labels": [
+        "load settings from media file",
+        "load settings from video",
+        "load from video"
+      ],
+      "group": "Settings",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "lora_url",
+      "name": "Lora URL",
+      "componentId": [
+        "component-539",
+        "component-540",
+        "component-541"
+      ],
+      "labels": [
+        "lora url",
+        "download lora"
+      ],
+      "buttonText": [
+        "download lora"
+      ],
+      "group": "LoRAs",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "custom_1789358361357",
+      "name": "Status Bar",
+      "componentId": "component-716",
+      "labels": [
+        "ready"
+      ],
+      "group": "Queue",
+      "mode": "compact",
+      "default": true
+    },
+    {
+      "id": "late_post_processing",
+      "name": "Model Info / Late Post Processing",
+      "componentId": [
+        "component-744",
+        "component-1758"
+      ],
+      "labels": [
+        "media info / late post processing",
+        "late post processing",
+        "model info / late post processing",
+        "import media"
+      ],
+      "group": "Post-Processing",
+      "mode": "hide",
+      "default": false
+    },
+    {
+      "id": "queue_management",
+      "name": "Queue Management",
+      "componentId": [
+        "component-879",
+        "component-1893"
+      ],
+      "labels": [
+        "queue management",
+        "queue is empty",
+        "add new prompt to queue"
+      ],
+      "buttonText": [
+        "queue management"
+      ],
+      "group": "Queue",
+      "mode": "hide",
+      "default": false
+    }
+  ],
+  "order": [
+    "header",
+    "model_selection",
+    "model_info",
+    "resource_bars",
+    "custom_1789355460302",
+    "video_to_video",
+    "media_drop",
+    "custom_1789355180222",
+    "audio_source",
+    "enhance_prompt",
+    "audio_refinement_extra_phase",
+    "res_group",
+    "frames",
+    "number_of_images_to_generate",
+    "inf_steps",
+    "settings_buttons",
+    "load_vid",
+    "lora_url",
+    "custom_1789358361357",
+    "late_post_processing",
+    "queue_management"
+  ]
 }

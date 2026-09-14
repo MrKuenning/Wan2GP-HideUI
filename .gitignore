@@ -1,4 +1,7 @@
+/Docs/
 /Docs/Concept.txt
 /Docs/compact_example.jpg
-/Docs/Lable Hunter.txt
-
+"/Docs/Example Page.html"
+/scratch/
+__pycache__/
+*.pyc
