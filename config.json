@@ -1,5 +1,5 @@
 {
-  "activePreset": "1",
+  "activePreset": "2",
   "presets": {
     "1": {
       "name": "Standard",
@@ -48,7 +48,7 @@
         "settings_buttons": false,
         "load_vid": false,
         "lora_url": false,
-        "custom_1789358361357": false,
+        "custom_1789358361357": true,
         "late_post_processing": false,
         "queue_management": true
       }
@@ -74,7 +74,7 @@
         "settings_buttons": false,
         "load_vid": false,
         "lora_url": false,
-        "custom_1789358361357": false,
+        "custom_1789358361357": true,
         "late_post_processing": false,
         "queue_management": true
       }
