@@ -44,8 +44,8 @@ Image of the editing view adding a new custom element:
   - **Element Picker** (➕) - Interactively select any part of the UI to add as a new toggle.
   - **Quick Rename** (✏️) - Give any element a friendly custom name.
   - **Delete** (✕) - Remove unnecessary toggles from your list.
-  - **Caching System** - "Cached" badges show which changes are currently stored in your browser's local storage.
-  - **Export / Reset** - Side-by-side buttons to export your configuration directly into `config.json` or reset to defaults.
+  - **Direct Disk Persistence** - All modifications, reorders, custom additions, and preset changes save directly to `config.json` via a backend bridge. No manual export or local storage desyncs!
+  - **Reload from Disk** - Hot-reload `config.json` freshly from disk at any time without restarting WAN2GP.
 
 ### Schema Flexibility in `config.json`
 `config.json` supports:
@@ -86,8 +86,8 @@ Click the **☰ UI** button in the bottom right corner. Click **✕ Close** to c
 3. **Add Element**: Click the blue plus button, then click any part of the WAN2GP interface to add it to your toggle list.
 4. **Reorder**: Drag the `≡` handle or tap `▲`/`▼` to move items up or down.
 5. **Rename/Delete**: Use ✏️ to rename or ✕ to delete.
-6. **Import**: Use the **📥 Import** button to hot-reload edits made to `config.json` without restarting WAN2GP.
-7. **Export**: Use the **📤 Export** button to get the JSON to save directly into `config.json`.
+6. **Automatic Saving**: Any change you make automatically saves to `config.json` with a visual `✓ Saved to config.json` status indicator.
+7. **Reload Disk**: Click **🔄 Reload Disk** to instantly reload changes made externally to `config.json` without restarting WAN2GP.
 
 ## Changelog
 See [CHANGELOG.md](file:///c:/Users/Brady/Projects/AI%20-%20WebUI%20Extentions/AI%20-%20Extention%20Wan2GP%20-%20Wan2GP-HideUI/App1/CHANGELOG.md) for full version history and detailed release notes.

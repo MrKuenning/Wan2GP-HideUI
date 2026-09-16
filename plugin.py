@@ -10,8 +10,9 @@ class MobileTogglePlugin(WAN2GPPlugin):
     def __init__(self):
         super().__init__()
         self.name = PlugIn_Name
-        self.version = "4.0"
+        self.version = "4.1"
         self.description = "Floating menu to toggle and compact UI elements, optimized for desktop and mobile."
+        self.request_component("generate_btn")
 
     def load_config(self):
         """Load configuration from config.json if it exists"""
@@ -26,10 +27,10 @@ class MobileTogglePlugin(WAN2GPPlugin):
         return {"elements": [], "order": [], "presets": {}, "activePreset": "1"}
 
     def save_config(self, elements, order, presets=None, activePreset="1", prefs=None):
-        """Save configuration to config.json"""
+        """Save configuration directly to config.json"""
         config_path = os.path.join(os.path.dirname(__file__), 'config.json')
         config_data = {
-            "activePreset": activePreset,
+            "activePreset": str(activePreset or "1"),
             "presets": presets or {},
             "elements": elements,
             "order": order
@@ -47,83 +48,154 @@ class MobileTogglePlugin(WAN2GPPlugin):
     def setup_ui(self):
         self.add_custom_js(self.inject_floating_buttons_js())
 
+    def post_ui_setup(self, components: dict) -> dict:
+        try:
+            def create_bridge():
+                with gr.Row(visible=False, elem_id="wan2gp_hideui_bridge_row"):
+                    bridge_save_input = gr.Textbox(elem_id="wan2gp_hideui_bridge_save_input", visible=False)
+                    bridge_save_btn = gr.Button(elem_id="wan2gp_hideui_bridge_save_btn", visible=False)
+                    bridge_reload_btn = gr.Button(elem_id="wan2gp_hideui_bridge_reload_btn", visible=False)
+                    bridge_output = gr.Textbox(elem_id="wan2gp_hideui_bridge_output", visible=False)
+
+                def handle_save(payload):
+                    try:
+                        data = json.loads(payload)
+                        res = self.save_config(
+                            elements=data.get("elements", []),
+                            order=data.get("order", []),
+                            presets=data.get("presets", {}),
+                            activePreset=str(data.get("activePreset", "1")),
+                            prefs=data.get("prefs")
+                        )
+                        if res.get("status") == "success":
+                            return json.dumps({"action": "save", "status": "success"})
+                        else:
+                            return json.dumps({"action": "save", "status": "error", "message": res.get("message")})
+                    except Exception as e:
+                        print(f"[Wan2GP-HideUI] Error saving config.json: {e}")
+                        return json.dumps({"action": "save", "status": "error", "message": str(e)})
+
+                def handle_reload():
+                    try:
+                        cfg = self.load_config()
+                        return json.dumps({"action": "reload", "status": "success", "config": cfg})
+                    except Exception as e:
+                        print(f"[Wan2GP-HideUI] Error reloading config.json: {e}")
+                        return json.dumps({"action": "reload", "status": "error", "message": str(e)})
+
+                bridge_save_btn.click(
+                    fn=handle_save,
+                    inputs=[bridge_save_input],
+                    outputs=[bridge_output],
+                    show_progress="hidden"
+                )
+
+                bridge_reload_btn.click(
+                    fn=handle_reload,
+                    inputs=[],
+                    outputs=[bridge_output],
+                    show_progress="hidden"
+                )
+
+                bridge_output.change(
+                    fn=None,
+                    inputs=[bridge_output],
+                    js="""(responseStr) => {
+                        if (window.wgp_hideui_handle_bridge_response) {
+                            window.wgp_hideui_handle_bridge_response(responseStr);
+                        }
+                    }""",
+                    show_progress="hidden"
+                )
+
+                return bridge_save_input
+
+            self.insert_after(
+                target_component_id="generate_btn",
+                new_component_constructor=create_bridge
+            )
+        except Exception as e:
+            print(f"[Wan2GP-HideUI] Error in post_ui_setup: {e}")
+            import traceback
+            traceback.print_exc()
+
+        return {}
+
     def inject_floating_buttons_js(self) -> str:
         config = self.load_config()
         config_json = json.dumps(config)
 
         js_code = r"""
         (function(){
-            const STORAGE_KEY_CUSTOM   = "wan2gp_hideui_custom";
-            const STORAGE_KEY_PREFS    = "wan2gp_hideui_prefs";
-            const STORAGE_KEY_ORDER    = "wan2gp_hideui_order";
             const STORAGE_KEY_EDIT     = "wan2gp_hideui_editMode";
             const STORAGE_KEY_OPEN     = "wan2gp_hideui_open";
-            const STORAGE_KEY_PRESETS  = "wan2gp_hideui_presets";
-            const STORAGE_KEY_ACTIVE_PRESET = "wan2gp_hideui_active_preset";
-            const SESSION_KEY_INIT     = "wan2gp_hideui_session_init";
+
+            // Purge legacy browser-cached configuration so config.json is the single source of truth
+            try {
+                localStorage.removeItem("wan2gp_hideui_custom");
+                localStorage.removeItem("wan2gp_hideui_prefs");
+                localStorage.removeItem("wan2gp_hideui_order");
+                localStorage.removeItem("wan2gp_hideui_presets");
+                localStorage.removeItem("wan2gp_hideui_active_preset");
+                sessionStorage.removeItem("wan2gp_hideui_session_init");
+            } catch (e) {}
 
             const FILE_CONFIG = __CONFIG_JSON_PLACEHOLDER__;
+            let runtimeConfig = JSON.parse(JSON.stringify(FILE_CONFIG || {}));
+            if (!runtimeConfig.elements) runtimeConfig.elements = [];
+            if (!runtimeConfig.order) runtimeConfig.order = runtimeConfig.elements.map(e => e.id);
+            if (!runtimeConfig.presets) runtimeConfig.presets = {};
+            if (!runtimeConfig.activePreset) runtimeConfig.activePreset = "1";
+            if (!runtimeConfig.prefs) runtimeConfig.prefs = {};
 
             let allTargets = [];
-            let originalConfig = FILE_CONFIG;
             let editMode = localStorage.getItem(STORAGE_KEY_EDIT) === 'true';
             let menuOpen = localStorage.getItem(STORAGE_KEY_OPEN) === 'true';
             let pickerMode = false;
             let highlightOverlay = null;
             let uiMounted = false;
             let searchQuery = "";
+            let diskSyncTimer = null;
 
-            // --- STORAGE INITIALIZATION & HELPERS ---
+            // --- DIRECT-TO-DISK CONFIGURATION HELPERS ---
 
             function getDefaultPresets() {
-                if (FILE_CONFIG.presets && typeof FILE_CONFIG.presets === "object" && Object.keys(FILE_CONFIG.presets).length > 0) {
-                    return JSON.parse(JSON.stringify(FILE_CONFIG.presets));
+                if (runtimeConfig.presets && typeof runtimeConfig.presets === "object" && Object.keys(runtimeConfig.presets).length > 0) {
+                    return JSON.parse(JSON.stringify(runtimeConfig.presets));
                 }
                 const p1States = {};
                 allTargets.forEach(t => { p1States[t.id] = (t.default !== false); });
                 return {
-                    "1": { "name": "Standard", "states": p1States },
-                    "2": { "name": "Minimal", "states": p1States },
-                    "3": { "name": "Full Focus", "states": p1States }
+                    "1": { "name": "Standard", "states": Object.assign({}, p1States) },
+                    "2": { "name": "Minimal", "states": Object.assign({}, p1States) },
+                    "3": { "name": "Full Focus", "states": Object.assign({}, p1States) }
                 };
             }
 
             function loadPresets() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY_PRESETS);
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
-                            return parsed;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("[Wan2GP-HideUI] Failed to load presets:", e);
+                if (runtimeConfig.presets && typeof runtimeConfig.presets === "object" && Object.keys(runtimeConfig.presets).length > 0) {
+                    return runtimeConfig.presets;
                 }
                 const defaults = getDefaultPresets();
-                savePresets(defaults);
+                runtimeConfig.presets = defaults;
                 return defaults;
             }
 
             function savePresets(presets) {
-                try {
-                    localStorage.setItem(STORAGE_KEY_PRESETS, JSON.stringify(presets));
-                } catch (e) {
-                    console.error("[Wan2GP-HideUI] Failed to save presets:", e);
-                }
+                runtimeConfig.presets = presets;
+                syncConfigToDisk();
             }
 
             function getActivePresetId() {
-                const active = localStorage.getItem(STORAGE_KEY_ACTIVE_PRESET);
                 const presets = loadPresets();
-                if (active && presets[active]) return active;
-                return FILE_CONFIG.activePreset || "1";
+                const active = runtimeConfig.activePreset;
+                if (active && presets[active]) return String(active);
+                return "1";
             }
 
             function setActivePresetId(id) {
-                try {
-                    localStorage.setItem(STORAGE_KEY_ACTIVE_PRESET, id);
-                } catch (e) {}
+                runtimeConfig.activePreset = String(id);
+                syncConfigToDisk();
             }
 
             function applyPreset(presetId) {
@@ -187,55 +259,29 @@ class MobileTogglePlugin(WAN2GPPlugin):
             }
 
             function loadCustomElements() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY_CUSTOM);
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            return parsed;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("[Wan2GP-HideUI] Failed to load custom elements:", e);
-                }
-                const initial = FILE_CONFIG.elements || [];
-                saveCustomElements(initial);
-                return JSON.parse(JSON.stringify(initial));
+                return runtimeConfig.elements || [];
             }
 
             function saveCustomElements(elements) {
-                try {
-                    localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(elements));
-                } catch (e) {
-                    console.error("[Wan2GP-HideUI] Failed to save custom elements:", e);
-                }
+                runtimeConfig.elements = elements;
+                syncConfigToDisk();
             }
 
             function loadPreferences() {
-                try {
-                    // Fresh session initialization: active preset states are respected on first load
-                    const isSessionInit = sessionStorage.getItem(SESSION_KEY_INIT);
-                    if (!isSessionInit) {
-                        sessionStorage.setItem(SESSION_KEY_INIT, "true");
-                        const activeId = getActivePresetId();
-                        const presets = loadPresets();
-                        const activePreset = presets[activeId];
-                        const defaultPrefs = {};
-                        allTargets.forEach(t => {
-                            if (activePreset && activePreset.states && activePreset.states[t.id] !== undefined) {
-                                defaultPrefs[t.id] = activePreset.states[t.id];
-                            } else {
-                                defaultPrefs[t.id] = (t.default !== false);
-                            }
-                        });
-                        localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(defaultPrefs));
-                        return defaultPrefs;
+                const activeId = getActivePresetId();
+                const presets = loadPresets();
+                const activePreset = presets[activeId];
+                const prefs = {};
+                allTargets.forEach(t => {
+                    if (activePreset && activePreset.states && activePreset.states[t.id] !== undefined) {
+                        prefs[t.id] = activePreset.states[t.id];
+                    } else if (runtimeConfig.prefs && runtimeConfig.prefs[t.id] !== undefined) {
+                        prefs[t.id] = runtimeConfig.prefs[t.id];
+                    } else {
+                        prefs[t.id] = (t.default !== false);
                     }
-                    const saved = localStorage.getItem(STORAGE_KEY_PREFS);
-                    return saved ? JSON.parse(saved) : {};
-                } catch (e) {
-                    return {};
-                }
+                });
+                return prefs;
             }
 
             function savePreferences() {
@@ -246,43 +292,27 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         prefs[target.id] = cb.checked;
                     }
                 });
-                try {
-                    localStorage.setItem(STORAGE_KEY_PREFS, JSON.stringify(prefs));
-                } catch (e) {
-                    console.error("[Wan2GP-HideUI] Failed to save preferences:", e);
-                }
+                runtimeConfig.prefs = prefs;
+                syncConfigToDisk();
             }
 
             function loadElementOrder() {
-                try {
-                    const saved = localStorage.getItem(STORAGE_KEY_ORDER);
-                    if (saved) {
-                        const parsed = JSON.parse(saved);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            return parsed;
-                        }
-                    }
-                } catch (e) {
-                    console.warn("[Wan2GP-HideUI] Failed to load order:", e);
+                if (runtimeConfig.order && Array.isArray(runtimeConfig.order) && runtimeConfig.order.length > 0) {
+                    return runtimeConfig.order.slice();
                 }
-                const initialOrder = (FILE_CONFIG.order && FILE_CONFIG.order.length > 0)
-                    ? FILE_CONFIG.order
-                    : (FILE_CONFIG.elements || []).map(e => e.id);
-                saveElementOrder(initialOrder);
-                return initialOrder.slice();
+                const initial = (runtimeConfig.elements || []).map(e => e.id);
+                runtimeConfig.order = initial;
+                return initial.slice();
             }
 
             function saveElementOrder(order) {
-                try {
-                    const list = order || allTargets.map(t => t.id);
-                    localStorage.setItem(STORAGE_KEY_ORDER, JSON.stringify(list));
-                } catch (e) {
-                    console.error("[Wan2GP-HideUI] Failed to save order:", e);
-                }
+                const list = order || allTargets.map(t => t.id);
+                runtimeConfig.order = list;
+                syncConfigToDisk();
             }
 
             function syncTargetsFromStorage() {
-                allTargets = loadCustomElements();
+                allTargets = (runtimeConfig.elements || []).slice();
                 const savedOrder = loadElementOrder();
                 if (savedOrder.length > 0) {
                     allTargets.sort((a, b) => {
@@ -294,14 +324,6 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         return aIdx - bIdx;
                     });
                 }
-            }
-
-            function isElementModified(target) {
-                const orig = (originalConfig.elements || []).find(e => e.id === target.id);
-                if (!orig) return true; // New custom element
-                if (orig.name !== target.name) return true; // Renamed
-                if ((orig.default !== false) !== (target.default !== false)) return true; // Default changed
-                return false;
             }
 
             // --- STYLES INJECTION ---
@@ -562,15 +584,33 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         accent-color: var(--studio-accent, #69a8df);
                         cursor: pointer;
                     }
-                    .hideui-badge-cached {
+                    .hideui-badge-custom {
                         font-size: 9px;
                         font-weight: 700;
                         text-transform: uppercase;
                         letter-spacing: 0.5px;
-                        background: #f59e0b;
-                        color: #0f172a;
+                        background: rgba(2, 132, 199, 0.25);
+                        border: 1px solid rgba(56, 189, 248, 0.4);
+                        color: #7dd3fc;
                         padding: 1px 5px;
                         border-radius: 3px;
+                    }
+                    .hideui-status-badge {
+                        font-size: 11px;
+                        padding: 2px 8px;
+                        border-radius: 12px;
+                        background: rgba(22, 163, 74, 0.2);
+                        border: 1px solid rgba(22, 163, 74, 0.4);
+                        color: #4ade80;
+                        transition: opacity 0.3s ease;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 4px;
+                    }
+                    .hideui-status-badge.is-error {
+                        background: rgba(239, 68, 68, 0.2);
+                        border-color: rgba(239, 68, 68, 0.4);
+                        color: #f87171;
                     }
                     .hideui-row-presets {
                         display: inline-flex;
@@ -1049,219 +1089,122 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     saveElementOrder(order);
                 }
 
+                const currentPresets = loadPresets();
+                ["1", "2", "3"].forEach(pid => {
+                    if (currentPresets[pid] && currentPresets[pid].states) {
+                        currentPresets[pid].states[customId] = true;
+                    }
+                });
+                savePresets(currentPresets);
+
                 exitPickerMode();
                 syncTargetsFromStorage();
                 renderMenu();
                 applyVisibility();
             }
 
-            // --- MODALS (EXPORT & RESET) ---
+            // --- DIRECT-TO-DISK SYNC & BRIDGE ---
 
-            function showExportModal() {
-                const existing = document.getElementById("wan2gp-modal-container");
-                if (existing) existing.remove();
-
-                const config = {
-                    activePreset: getActivePresetId(),
-                    presets: loadPresets(),
-                    elements: allTargets.map(t => ({
-                        id: t.id,
-                        name: t.name,
-                        ...(t.componentId ? { componentId: t.componentId } : {}),
-                        ...(t.labels && t.labels.length ? { labels: t.labels } : {}),
-                        ...(t.cssSelector ? { cssSelector: t.cssSelector } : {}),
-                        ...(t.buttonText ? { buttonText: t.buttonText } : {}),
-                        ...(t.group ? { group: t.group } : {}),
-                        ...(t.isCustom ? { isCustom: true } : {}),
-                        default: (t.default !== false)
-                    })),
-                    order: allTargets.map(t => t.id)
-                };
-                const jsonStr = JSON.stringify(config, null, 2);
-
-                const modalContainer = document.createElement("div");
-                modalContainer.id = "wan2gp-modal-container";
-                Object.assign(modalContainer.style, {
-                    position: "fixed",
-                    inset: "0",
-                    background: "rgba(0, 0, 0, 0.75)",
-                    zIndex: "1000000",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    padding: "16px",
-                    backdropFilter: "blur(6px)"
-                });
-
-                const modal = document.createElement("div");
-                Object.assign(modal.style, {
-                    background: "rgba(10, 16, 26, 0.98)",
-                    border: "1px solid var(--studio-border, #467eaf)",
-                    borderRadius: "10px",
-                    padding: "20px",
-                    width: "100%",
-                    maxWidth: "600px",
-                    boxShadow: "0 24px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05)",
-                    color: "var(--studio-button-text, #e6f2fc)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px"
-                });
-
-                const title = document.createElement("h3");
-                title.textContent = "📤 Export Configuration";
-                title.style.margin = "0";
-                title.style.fontSize = "16px";
-                title.style.color = "var(--studio-label, #a4cef0)";
-                modal.appendChild(title);
-
-                const desc = document.createElement("p");
-                desc.textContent = "Copy the JSON below and paste it into config.json to make your custom toggles, ordering, and default states permanent across all browsers and sessions.";
-                Object.assign(desc.style, {
-                    margin: "0",
-                    fontSize: "12px",
-                    color: "var(--studio-disabled-text, #97a3b2)",
-                    lineHeight: "1.4"
-                });
-                modal.appendChild(desc);
-
-                const textarea = document.createElement("textarea");
-                textarea.value = jsonStr;
-                textarea.readOnly = true;
-                Object.assign(textarea.style, {
-                    width: "100%",
-                    height: "280px",
-                    fontFamily: "ui-monospace, monospace",
-                    fontSize: "12px",
-                    padding: "10px",
-                    background: "rgba(6, 11, 18, 0.92)",
-                    color: "var(--studio-label, #a4cef0)",
-                    border: "1px solid var(--studio-border, #467eaf)",
-                    borderRadius: "6px",
-                    resize: "vertical",
-                    boxSizing: "border-box"
-                });
-                textarea.onclick = () => textarea.select();
-                modal.appendChild(textarea);
-
-                const btnRow = document.createElement("div");
-                Object.assign(btnRow.style, {
-                    display: "flex",
-                    gap: "8px",
-                    justifyContent: "flex-end"
-                });
-
-                const copyBtn = document.createElement("button");
-                copyBtn.textContent = "📋 Copy to Clipboard";
-                copyBtn.className = "hideui-btn hideui-btn-success";
-                copyBtn.style.padding = "8px 16px";
-                copyBtn.onclick = () => {
-                    textarea.select();
-                    navigator.clipboard.writeText(jsonStr).then(() => {
-                        copyBtn.textContent = "✓ Copied!";
-                        setTimeout(() => copyBtn.textContent = "📋 Copy to Clipboard", 2000);
-                    }).catch(() => {
-                        document.execCommand('copy');
-                        copyBtn.textContent = "✓ Copied!";
-                        setTimeout(() => copyBtn.textContent = "📋 Copy to Clipboard", 2000);
-                    });
-                };
-
-                const closeBtn = document.createElement("button");
-                closeBtn.textContent = "Close";
-                closeBtn.className = "hideui-btn";
-                closeBtn.style.padding = "8px 16px";
-                closeBtn.onclick = () => modalContainer.remove();
-
-                btnRow.appendChild(copyBtn);
-                btnRow.appendChild(closeBtn);
-                modal.appendChild(btnRow);
-
-                modalContainer.onclick = (e) => {
-                    if (e.target === modalContainer) modalContainer.remove();
-                };
-
-                modalContainer.appendChild(modal);
-                document.body.appendChild(modalContainer);
-                textarea.select();
-            }
-
-            function handleImportFromFile() {
-                const fileInput = document.createElement("input");
-                fileInput.type = "file";
-                fileInput.accept = ".json";
-                fileInput.style.display = "none";
-                document.body.appendChild(fileInput);
-
-                fileInput.onchange = (e) => {
-                    const file = e.target.files[0];
-                    if (!file) {
-                        fileInput.remove();
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (readEvent) => {
-                        try {
-                            const parsed = JSON.parse(readEvent.target.result);
-                            if (parsed && Array.isArray(parsed.elements)) {
-                                originalConfig = parsed;
-                                saveCustomElements(parsed.elements);
-                                const newOrder = (parsed.order && Array.isArray(parsed.order))
-                                    ? parsed.order
-                                    : parsed.elements.map(el => el.id);
-                                saveElementOrder(newOrder);
-                                if (parsed.presets && typeof parsed.presets === "object" && Object.keys(parsed.presets).length > 0) {
-                                    savePresets(parsed.presets);
-                                }
-                                if (parsed.activePreset) {
-                                    setActivePresetId(parsed.activePreset);
-                                }
-                                localStorage.removeItem(STORAGE_KEY_PREFS);
-                                sessionStorage.removeItem(SESSION_KEY_INIT);
-                                syncTargetsFromStorage();
-                                applyPreset(getActivePresetId());
-                                renderMenu();
-                                alert(`✓ Successfully loaded ${parsed.elements.length} elements from ${file.name}!`);
-                            } else {
-                                alert("Invalid config format: expected an 'elements' array in JSON.");
-                            }
-                        } catch (err) {
-                            alert("Error parsing JSON file: " + err.message);
-                        } finally {
-                            fileInput.remove();
-                        }
-                    };
-                    reader.readAsText(file);
-                };
-
-                fileInput.click();
-            }
-
-            function handleResetFromFile() {
-                if (!confirm("Reset all customizations and reload elements from config.json?\n\nNote: If you edited config.json while Wan2GP was running, restart Wan2GP or click '📥 Import File' to hot-reload the changes without restarting.")) {
-                    return;
+            function showStatusBadge(text, isError = false) {
+                const badge = document.getElementById("wan2gp-save-status-pill");
+                if (!badge) return;
+                badge.textContent = text;
+                badge.style.display = "inline-flex";
+                if (isError) {
+                    badge.classList.add("is-error");
+                } else {
+                    badge.classList.remove("is-error");
                 }
-                localStorage.removeItem(STORAGE_KEY_CUSTOM);
-                localStorage.removeItem(STORAGE_KEY_PREFS);
-                localStorage.removeItem(STORAGE_KEY_ORDER);
-                localStorage.removeItem(STORAGE_KEY_PRESETS);
-                localStorage.removeItem(STORAGE_KEY_ACTIVE_PRESET);
-                sessionStorage.removeItem(SESSION_KEY_INIT);
+                badge.style.opacity = "1";
+                if (!isError && text !== "Saving..." && text !== "Reloading...") {
+                    setTimeout(() => {
+                        badge.style.opacity = "0";
+                        setTimeout(() => {
+                            if (badge.style.opacity === "0") badge.style.display = "none";
+                        }, 400);
+                    }, 2500);
+                }
+            }
 
-                const initialElements = FILE_CONFIG.elements || [];
-                const initialOrder = (FILE_CONFIG.order && FILE_CONFIG.order.length > 0)
-                    ? FILE_CONFIG.order
-                    : initialElements.map(e => e.id);
+            function syncConfigToDisk() {
+                clearTimeout(diskSyncTimer);
+                diskSyncTimer = setTimeout(() => {
+                    const payload = {
+                        activePreset: getActivePresetId(),
+                        presets: loadPresets(),
+                        elements: (runtimeConfig.elements || allTargets).map(t => ({
+                            id: t.id,
+                            name: t.name,
+                            ...(t.componentId ? { componentId: t.componentId } : {}),
+                            ...(t.labels && t.labels.length ? { labels: t.labels } : {}),
+                            ...(t.cssSelector ? { cssSelector: t.cssSelector } : {}),
+                            ...(t.buttonText ? { buttonText: t.buttonText } : {}),
+                            ...(t.group ? { group: t.group } : {}),
+                            ...(t.isCustom ? { isCustom: true } : {}),
+                            default: (t.default !== false)
+                        })),
+                        order: runtimeConfig.order || allTargets.map(t => t.id),
+                        prefs: runtimeConfig.prefs || {}
+                    };
+                    const bridgeInput = document.querySelector('#wan2gp_hideui_bridge_save_input textarea') ||
+                                        document.querySelector('#wan2gp_hideui_bridge_save_input input');
+                    const bridgeBtn = document.getElementById('wan2gp_hideui_bridge_save_btn');
+                    if (bridgeInput && bridgeBtn) {
+                        bridgeInput.value = JSON.stringify(payload);
+                        bridgeInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        bridgeBtn.click();
+                        showStatusBadge("Saving...");
+                    } else {
+                        console.warn("[Wan2GP-HideUI] Gradio bridge not found; config not written to disk.");
+                    }
+                }, 250);
+            }
 
-                saveCustomElements(initialElements);
-                saveElementOrder(initialOrder);
-                savePresets(getDefaultPresets());
-                setActivePresetId(FILE_CONFIG.activePreset || "1");
+            function handleReloadFromDisk() {
+                const bridgeBtn = document.getElementById('wan2gp_hideui_bridge_reload_btn');
+                if (bridgeBtn) {
+                    showStatusBadge("Reloading...");
+                    bridgeBtn.click();
+                } else {
+                    alert("Gradio backend bridge not found. Please restart Wan2GP to reload config.json.");
+                }
+            }
+
+            function applyLoadedConfig(newConfig) {
+                if (!newConfig || !Array.isArray(newConfig.elements)) return;
+                runtimeConfig = JSON.parse(JSON.stringify(newConfig));
+                if (!runtimeConfig.order) runtimeConfig.order = runtimeConfig.elements.map(e => e.id);
+                if (!runtimeConfig.presets) runtimeConfig.presets = {};
+                if (!runtimeConfig.activePreset) runtimeConfig.activePreset = "1";
+                if (!runtimeConfig.prefs) runtimeConfig.prefs = {};
 
                 syncTargetsFromStorage();
                 applyPreset(getActivePresetId());
                 renderMenu();
             }
+
+            window.wgp_hideui_handle_bridge_response = function(responseStr) {
+                try {
+                    if (!responseStr) return;
+                    const res = JSON.parse(responseStr);
+                    if (res.action === "save") {
+                        if (res.status === "success") {
+                            showStatusBadge("✓ Saved to config.json");
+                        } else {
+                            showStatusBadge("⚠️ " + (res.message || "Save error"), true);
+                        }
+                    } else if (res.action === "reload") {
+                        if (res.status === "success" && res.config) {
+                            applyLoadedConfig(res.config);
+                            showStatusBadge("✓ Reloaded from disk");
+                        } else {
+                            showStatusBadge("⚠️ " + (res.message || "Reload error"), true);
+                        }
+                    }
+                } catch (e) {
+                    console.error("[Wan2GP-HideUI] Error handling bridge response:", e);
+                }
+            };
 
             // --- MENU RENDERING ---
 
@@ -1392,12 +1335,12 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 });
                 row.appendChild(nameSpan);
 
-                // Cached badge in edit mode
-                if (isEdit && isElementModified(target)) {
+                // Custom badge in edit mode
+                if (isEdit && target.isCustom) {
                     const badge = document.createElement("span");
-                    badge.className = "hideui-badge-cached";
-                    badge.textContent = "Cached";
-                    badge.title = "Modified or added locally (click Export Config to save into config.json)";
+                    badge.className = "hideui-badge-custom";
+                    badge.textContent = "Custom";
+                    badge.title = "Custom added element (saved to config.json)";
                     row.appendChild(badge);
                 }
 
@@ -1485,6 +1428,15 @@ class MobileTogglePlugin(WAN2GPPlugin):
                             allTargets = allTargets.filter(t => t.id !== target.id);
                             saveCustomElements(allTargets);
                             saveElementOrder(allTargets.map(t => t.id));
+
+                            const currentPresets = loadPresets();
+                            ["1", "2", "3"].forEach(pid => {
+                                if (currentPresets[pid] && currentPresets[pid].states) {
+                                    delete currentPresets[pid].states[target.id];
+                                }
+                            });
+                            savePresets(currentPresets);
+
                             renderMenu();
                         }
                     };
@@ -1541,7 +1493,17 @@ class MobileTogglePlugin(WAN2GPPlugin):
                         textTransform: "uppercase",
                         letterSpacing: "0.5px"
                     });
-                    countRow.textContent = `Edit Mode • ${allTargets.length} Elements`;
+
+                    const countTitle = document.createElement("span");
+                    countTitle.textContent = `Edit Mode • ${allTargets.length} Elements`;
+                    countRow.appendChild(countTitle);
+
+                    const statusPill = document.createElement("span");
+                    statusPill.id = "wan2gp-save-status-pill";
+                    statusPill.className = "hideui-status-badge";
+                    statusPill.style.display = "none";
+                    countRow.appendChild(statusPill);
+
                     header.appendChild(countRow);
 
                     // Finished Editing button
@@ -1560,12 +1522,18 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     };
                     header.appendChild(finishedBtn);
 
-                    // Add Element button
+                    // Action buttons row: Add Element & Reload from Disk
+                    const editActionRow = document.createElement("div");
+                    Object.assign(editActionRow.style, {
+                        display: "flex",
+                        gap: "6px"
+                    });
+
                     const addBtn = document.createElement("button");
                     addBtn.id = "wan2gp-add-element-btn";
                     addBtn.className = "hideui-btn hideui-btn-info";
-                    addBtn.textContent = pickerMode ? "✕ Cancel Picker" : "➕ Add New Element";
-                    addBtn.style.width = "100%";
+                    addBtn.textContent = pickerMode ? "✕ Cancel Picker" : "➕ Add Element";
+                    addBtn.style.flex = "1.2";
                     addBtn.onclick = (e) => {
                         e.stopPropagation();
                         if (pickerMode) {
@@ -1574,49 +1542,20 @@ class MobileTogglePlugin(WAN2GPPlugin):
                             enterPickerMode();
                         }
                     };
-                    header.appendChild(addBtn);
 
-                    // Import, Export & Reset buttons
-                    const subRow = document.createElement("div");
-                    Object.assign(subRow.style, {
-                        display: "flex",
-                        gap: "4px"
-                    });
-
-                    const importBtn = document.createElement("button");
-                    importBtn.className = "hideui-btn";
-                    importBtn.textContent = "📥 Import";
-                    importBtn.title = "Hot-reload config.json directly from your computer without restarting Wan2GP";
-                    importBtn.style.flex = "1";
-                    importBtn.onclick = (e) => {
+                    const reloadBtn = document.createElement("button");
+                    reloadBtn.className = "hideui-btn";
+                    reloadBtn.textContent = "🔄 Reload Disk";
+                    reloadBtn.title = "Reload config.json directly from disk without restarting Wan2GP";
+                    reloadBtn.style.flex = "0.8";
+                    reloadBtn.onclick = (e) => {
                         e.stopPropagation();
-                        handleImportFromFile();
+                        handleReloadFromDisk();
                     };
 
-                    const exportBtn = document.createElement("button");
-                    exportBtn.className = "hideui-btn";
-                    exportBtn.textContent = "📤 Export";
-                    exportBtn.title = "Export current configuration as JSON";
-                    exportBtn.style.flex = "1";
-                    exportBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        showExportModal();
-                    };
-
-                    const resetBtn = document.createElement("button");
-                    resetBtn.className = "hideui-btn";
-                    resetBtn.textContent = "🔄 Reset";
-                    resetBtn.title = "Reset to original startup config.json";
-                    resetBtn.style.flex = "1";
-                    resetBtn.onclick = (e) => {
-                        e.stopPropagation();
-                        handleResetFromFile();
-                    };
-
-                    subRow.appendChild(importBtn);
-                    subRow.appendChild(exportBtn);
-                    subRow.appendChild(resetBtn);
-                    header.appendChild(subRow);
+                    editActionRow.appendChild(addBtn);
+                    editActionRow.appendChild(reloadBtn);
+                    header.appendChild(editActionRow);
 
                     // Preset Rename Bar in Edit Mode
                     const presetEditBar = document.createElement("div");
@@ -1642,7 +1581,35 @@ class MobileTogglePlugin(WAN2GPPlugin):
                     header.appendChild(presetEditBar);
 
                 } else {
-                    // Normal Mode Header: Preset Buttons Row
+                    // Normal Mode Header: Status & Preset Buttons Row
+                    const topRow = document.createElement("div");
+                    Object.assign(topRow.style, {
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        minHeight: "16px",
+                        padding: "0 2px"
+                    });
+
+                    const presetTitle = document.createElement("span");
+                    presetTitle.textContent = "Presets";
+                    Object.assign(presetTitle.style, {
+                        fontSize: "10px",
+                        color: "var(--studio-label, #a4cef0)",
+                        fontWeight: "700",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px"
+                    });
+                    topRow.appendChild(presetTitle);
+
+                    const statusPill = document.createElement("span");
+                    statusPill.id = "wan2gp-save-status-pill";
+                    statusPill.className = "hideui-status-badge";
+                    statusPill.style.display = "none";
+                    topRow.appendChild(statusPill);
+
+                    header.appendChild(topRow);
+
                     const presetBar = document.createElement("div");
                     presetBar.className = "hideui-preset-bar";
                     const currentPresets = loadPresets();

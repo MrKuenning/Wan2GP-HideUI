@@ -4,6 +4,21 @@ All notable changes to the **Wan2GP HideUI Plugin** are documented in this file.
 
 ---
 
+## [4.4.0] - 2026-09-15
+
+### Added
+- **Direct-to-Disk Persistence**: Connected a Gradio backend bridge (`post_ui_setup` via `insert_after("generate_btn")`) enabling the UI to save changes directly to `config.json` on disk via Python without requiring manual export or clipboard copy-paste.
+- **Auto-Save with Visual Indicator**: Every modification (custom additions, renaming, deletion, reordering, preset switching, per-element 1/2/3 preset toggles, and "Save to Preset") automatically debounces and writes directly to `config.json`, displaying a sleek `✓ Saved to config.json` status pill.
+- **Reload from Disk Action**: Added a **🔄 Reload Disk** button in Edit Mode that queries Python to re-read `config.json` fresh from disk on demand, allowing instant hot-reloading if edited externally in a text editor.
+
+### Removed
+- **Browser LocalStorage Layer**: Eliminated reliance on browser `localStorage` for configuration (`custom`, `order`, `presets`, `prefs`, `activePreset`). Automatically purges legacy browser keys on launch so that `config.json` is always the single source of truth across all devices and browsers.
+- **Export Modal & Clipboard Helper**: Removed the Export button and modal since all changes now save directly to disk.
+- **Browser File Import**: Replaced the browser `<input type="file">` file picker with the direct disk reload bridge.
+- **"Cached" Badges**: Replaced "Cached" labels with a clear "Custom" tag for user-added elements.
+
+---
+
 ## [4.3.0] - 2026-09-14
 
 ### Added

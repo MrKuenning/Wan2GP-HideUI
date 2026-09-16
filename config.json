@@ -8,10 +8,10 @@
         "model_selection": true,
         "model_info": false,
         "resource_bars": false,
-        "custom_1789355460302": true,
+        "presets_dropdown": true,
         "video_to_video": true,
         "media_drop": true,
-        "custom_1789355180222": true,
+        "control_video_frames_injection": true,
         "audio_source": true,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
@@ -22,7 +22,7 @@
         "settings_buttons": false,
         "load_vid": false,
         "lora_url": false,
-        "custom_1789358361357": true,
+        "status_bar": true,
         "late_post_processing": true,
         "queue_management": true
       }
@@ -34,10 +34,10 @@
         "model_selection": true,
         "model_info": false,
         "resource_bars": false,
-        "custom_1789355460302": true,
+        "presets_dropdown": true,
         "video_to_video": true,
         "media_drop": true,
-        "custom_1789355180222": false,
+        "control_video_frames_injection": false,
         "audio_source": false,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
@@ -48,7 +48,7 @@
         "settings_buttons": false,
         "load_vid": false,
         "lora_url": false,
-        "custom_1789358361357": true,
+        "status_bar": true,
         "late_post_processing": false,
         "queue_management": true
       }
@@ -60,10 +60,10 @@
         "model_selection": false,
         "model_info": false,
         "resource_bars": false,
-        "custom_1789355460302": true,
+        "presets_dropdown": true,
         "video_to_video": true,
         "media_drop": false,
-        "custom_1789355180222": false,
+        "control_video_frames_injection": false,
         "audio_source": false,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
@@ -74,7 +74,7 @@
         "settings_buttons": false,
         "load_vid": false,
         "lora_url": false,
-        "custom_1789358361357": true,
+        "status_bar": true,
         "late_post_processing": false,
         "queue_management": true
       }
@@ -139,7 +139,7 @@
       "default": false
     },
     {
-      "id": "custom_1789355460302",
+      "id": "presets_dropdown",
       "name": "Presets Dropdown",
       "componentId": "component-52",
       "labels": [
@@ -183,7 +183,7 @@
       "default": true
     },
     {
-      "id": "custom_1789355180222",
+      "id": "control_video_frames_injection",
       "name": "Control Video / Frames Injection",
       "componentId": "component-109",
       "labels": [
@@ -342,7 +342,7 @@
       "default": false
     },
     {
-      "id": "custom_1789358361357",
+      "id": "status_bar",
       "name": "Status Bar",
       "componentId": "component-716",
       "labels": [
@@ -391,10 +391,10 @@
     "model_selection",
     "model_info",
     "resource_bars",
-    "custom_1789355460302",
+    "presets_dropdown",
     "video_to_video",
     "media_drop",
-    "custom_1789355180222",
+    "control_video_frames_injection",
     "audio_source",
     "enhance_prompt",
     "audio_refinement_extra_phase",
@@ -405,7 +405,7 @@
     "settings_buttons",
     "load_vid",
     "lora_url",
-    "custom_1789358361357",
+    "status_bar",
     "late_post_processing",
     "queue_management"
   ]
