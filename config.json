@@ -1,90 +1,89 @@
 {
-  "activePreset": "2",
+  "activePreset": "1",
   "presets": {
     "1": {
       "name": "Standard",
       "states": {
-        "header": false,
-        "model_selection": true,
+        "title": false,
+        "model_selector": true,
         "model_info": false,
         "resource_bars": false,
         "presets_dropdown": true,
-        "video_to_video": true,
-        "media_drop": true,
+        "input_options": true,
+        "media_drop_box": true,
         "control_video_frames_injection": true,
         "audio_source": true,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
-        "res_group": true,
-        "inf_steps": true,
-        "frames": true,
+        "resolution_options": true,
+        "inference_steps": true,
+        "number_of_frames": true,
         "number_of_images_to_generate": true,
         "settings_buttons": false,
-        "load_vid": false,
+        "load_from_video_settings": false,
         "lora_url": false,
         "status_bar": true,
-        "late_post_processing": true,
+        "model_info_late_post_processing": true,
         "queue_management": true
       }
     },
     "2": {
       "name": "Minimal",
       "states": {
-        "header": false,
-        "model_selection": true,
+        "title": false,
+        "model_selector": true,
         "model_info": false,
         "resource_bars": false,
         "presets_dropdown": true,
-        "video_to_video": true,
-        "media_drop": true,
+        "input_options": true,
+        "media_drop_box": true,
         "control_video_frames_injection": false,
         "audio_source": false,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
-        "res_group": false,
-        "inf_steps": false,
-        "frames": false,
+        "resolution_options": false,
+        "inference_steps": false,
+        "number_of_frames": false,
         "number_of_images_to_generate": false,
         "settings_buttons": false,
-        "load_vid": false,
+        "load_from_video_settings": false,
         "lora_url": false,
         "status_bar": true,
-        "late_post_processing": false,
+        "model_info_late_post_processing": false,
         "queue_management": true
       }
     },
     "3": {
       "name": "Mobile",
       "states": {
-        "header": false,
-        "model_selection": false,
+        "title": false,
+        "model_selector": false,
         "model_info": false,
         "resource_bars": false,
         "presets_dropdown": true,
-        "video_to_video": true,
-        "media_drop": false,
+        "input_options": false,
+        "media_drop_box": true,
         "control_video_frames_injection": false,
         "audio_source": false,
         "enhance_prompt": false,
         "audio_refinement_extra_phase": false,
-        "res_group": false,
-        "inf_steps": false,
-        "frames": false,
+        "resolution_options": false,
+        "inference_steps": false,
+        "number_of_frames": false,
         "number_of_images_to_generate": false,
         "settings_buttons": false,
-        "load_vid": false,
+        "load_from_video_settings": false,
         "lora_url": false,
         "status_bar": true,
-        "late_post_processing": false,
+        "model_info_late_post_processing": false,
         "queue_management": true
       }
     }
   },
   "elements": [
     {
-      "id": "header",
+      "id": "title",
       "name": "Title",
-      "componentId": "component-1",
       "labels": [
         "wan gp",
         "deepbeepmeep"
@@ -94,41 +93,32 @@
       "default": false
     },
     {
-      "id": "model_selection",
+      "id": "model_selector",
       "name": "Model Selector",
-      "componentId": [
-        "component-7"
-      ],
       "labels": [
         "model output filter",
         "select model",
         "model checkpoint"
       ],
+      "cssSelector": ".row:has(#model_list), .row:has(#family_list), .row:has(#model_base_types_list)",
       "group": "Model",
       "default": false
     },
     {
       "id": "model_info",
       "name": "Model Info",
-      "componentId": [
-        "component-38",
-        "component-39"
-      ],
       "labels": [
         "model info",
+        "attention mode",
         "model-info-popup"
       ],
-      "cssSelector": ".wangp-model-info-host, .wangp-model-info-trigger",
+      "cssSelector": ".header-markdown-group",
       "group": "Model",
       "default": false
     },
     {
       "id": "resource_bars",
       "name": "Resource Bars",
-      "componentId": [
-        "wangp-system-stats",
-        "component-41"
-      ],
       "labels": [
         "stats-container",
         "wangp-system-stats",
@@ -141,53 +131,52 @@
     {
       "id": "presets_dropdown",
       "name": "Presets Dropdown",
-      "componentId": "component-52",
       "labels": [
-        "dropdown"
+        "presets",
+        "enter here a name for a lora preset",
+        "preset"
+      ],
+      "buttonText": [
+        "apply",
+        "go ahead save it !"
       ],
       "group": "Prompting",
       "default": true
     },
     {
-      "id": "video_to_video",
+      "id": "input_options",
       "name": "Input Options",
-      "componentId": [
-        "component-76",
-        "component-77",
-        "component-78",
-        "component-79"
-      ],
       "labels": [
         "location",
-        "text prompt",
         "start with image",
         "continue video",
+        "continue last video",
+        "text prompt",
+        "end image(s)",
         "end image"
       ],
+      "cssSelector": ".row:has(> * > .cbx_centered), .row:has(.cbx_centered), .group:has(.cbx_centered)",
       "group": "Prompting",
       "default": true
     },
     {
-      "id": "media_drop",
+      "id": "media_drop_box",
       "name": "Media Drop Box",
-      "componentId": [
-        "component-81",
-        "component-82",
-        "component-84"
-      ],
       "labels": [
         "images as starting points for new videos",
         "drop media here"
       ],
+      "cssSelector": ".adv-media-gallery",
       "group": "Prompting",
       "default": true
     },
     {
       "id": "control_video_frames_injection",
       "name": "Control Video / Frames Injection",
-      "componentId": "component-109",
       "labels": [
-        "control video / frames injection"
+        "control video / frames injection",
+        "frames injection",
+        "control video"
       ],
       "group": "Generation",
       "default": true
@@ -195,11 +184,9 @@
     {
       "id": "audio_source",
       "name": "Audio Source",
-      "componentId": [
-        "component-214"
-      ],
       "labels": [
-        "audio source"
+        "audio source",
+        "source audio"
       ],
       "group": "Audio",
       "default": true
@@ -207,15 +194,13 @@
     {
       "id": "enhance_prompt",
       "name": "Enhance Prompt",
-      "componentId": [
-        "component-254",
-        "component-255"
-      ],
       "labels": [
-        "enhance prompt",
+        "enhance prompt using a llm",
         "enhance prompt using",
+        "enhance prompt",
         "write"
       ],
+      "cssSelector": ".row:has(.btn_centered)",
       "buttonText": [
         "write",
         "enhance prompt"
@@ -226,9 +211,6 @@
     {
       "id": "audio_refinement_extra_phase",
       "name": "Audio Refinement Extra Phase",
-      "componentId": [
-        "component-270"
-      ],
       "labels": [
         "audio refinement extra phase",
         "audio refinement"
@@ -237,27 +219,20 @@
       "default": false
     },
     {
-      "id": "res_group",
+      "id": "resolution_options",
       "name": "Resolution Options",
-      "componentId": [
-        "component-287",
-        "wangp-resolution"
-      ],
       "labels": [
-        "resolution",
+        "resolution budget",
         "resolution category",
-        "resolution budget"
+        "resolution"
       ],
+      "cssSelector": ".row:has(#wangp-resolution)",
       "group": "Sampling & Steps",
       "default": true
     },
     {
-      "id": "inf_steps",
+      "id": "inference_steps",
       "name": "Inference Steps",
-      "componentId": [
-        "component-296",
-        "component-297"
-      ],
       "labels": [
         "number of inference steps",
         "inference steps"
@@ -266,11 +241,11 @@
       "default": true
     },
     {
-      "id": "frames",
+      "id": "number_of_frames",
       "name": "Number of Frames",
-      "componentId": "component-293",
       "labels": [
-        "number of frames"
+        "number of frames",
+        "frames"
       ],
       "group": "Sampling & Steps",
       "default": true
@@ -288,13 +263,6 @@
     {
       "id": "settings_buttons",
       "name": "Settings Buttons",
-      "componentId": [
-        "component-528",
-        "component-529",
-        "component-530",
-        "component-531",
-        "component-532"
-      ],
       "labels": [
         "set settings as default",
         "export settings to file",
@@ -309,12 +277,8 @@
       "default": false
     },
     {
-      "id": "load_vid",
+      "id": "load_from_video_settings",
       "name": "Load from Video / Settings",
-      "componentId": [
-        "component-534",
-        "component-535"
-      ],
       "labels": [
         "load settings from media file",
         "load settings from video",
@@ -326,15 +290,11 @@
     {
       "id": "lora_url",
       "name": "Lora URL",
-      "componentId": [
-        "component-539",
-        "component-540",
-        "component-541"
-      ],
       "labels": [
         "lora url",
         "download lora"
       ],
+      "cssSelector": ".row:has(input[aria-label*='Lora URL']), .group:has(input[aria-label*='Lora URL'])",
       "buttonText": [
         "download lora"
       ],
@@ -344,21 +304,18 @@
     {
       "id": "status_bar",
       "name": "Status Bar",
-      "componentId": "component-716",
       "labels": [
         "ready"
       ],
+      "cssSelector": ".wangp-progress-container, .wangp-progress",
       "group": "Queue",
       "default": true
     },
     {
-      "id": "late_post_processing",
+      "id": "model_info_late_post_processing",
       "name": "Model Info / Late Post Processing",
-      "componentId": [
-        "component-744",
-        "component-1758"
-      ],
       "labels": [
+        "media info / late post processing / import media",
         "media info / late post processing",
         "late post processing",
         "model info / late post processing",
@@ -370,10 +327,6 @@
     {
       "id": "queue_management",
       "name": "Queue Management",
-      "componentId": [
-        "component-879",
-        "component-1893"
-      ],
       "labels": [
         "queue management",
         "queue is empty",
@@ -387,26 +340,49 @@
     }
   ],
   "order": [
-    "header",
-    "model_selection",
+    "title",
+    "model_selector",
     "model_info",
     "resource_bars",
     "presets_dropdown",
-    "video_to_video",
-    "media_drop",
+    "input_options",
+    "media_drop_box",
     "control_video_frames_injection",
     "audio_source",
     "enhance_prompt",
     "audio_refinement_extra_phase",
-    "res_group",
-    "inf_steps",
-    "frames",
+    "resolution_options",
+    "inference_steps",
+    "number_of_frames",
     "number_of_images_to_generate",
     "settings_buttons",
-    "load_vid",
+    "load_from_video_settings",
     "lora_url",
     "status_bar",
-    "late_post_processing",
+    "model_info_late_post_processing",
     "queue_management"
-  ]
+  ],
+  "prefs": {
+    "title": true,
+    "model_selector": true,
+    "model_info": true,
+    "resource_bars": true,
+    "presets_dropdown": true,
+    "input_options": true,
+    "media_drop_box": true,
+    "control_video_frames_injection": true,
+    "audio_source": true,
+    "enhance_prompt": true,
+    "audio_refinement_extra_phase": true,
+    "resolution_options": true,
+    "inference_steps": true,
+    "number_of_frames": true,
+    "number_of_images_to_generate": true,
+    "settings_buttons": true,
+    "load_from_video_settings": true,
+    "lora_url": true,
+    "status_bar": true,
+    "model_info_late_post_processing": true,
+    "queue_management": true
+  }
 }

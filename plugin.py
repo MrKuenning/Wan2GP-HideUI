@@ -797,23 +797,39 @@ class MobileTogglePlugin(WAN2GPPlugin):
             // --- TARGET FINDING & VISIBILITY CONTROL ---
 
             function filterSafeTargets(elementsSet) {
-                return Array.from(elementsSet).filter(el => {
+                const list = Array.from(elementsSet).filter(el => {
                     if (!el) return false;
                     if (
                         el.id === "root" ||
                         el.id === "component-0" ||
                         el.id === "component-6" ||
+                        el.id === "component-42" ||
+                        el.id === "component-44" ||
                         el.tagName === "BODY" ||
                         el.tagName === "MAIN" ||
                         el.getAttribute("role") === "tabpanel" ||
                         el.classList.contains("tabitem") ||
                         el.classList.contains("tabs") ||
                         el.classList.contains("gradio-container") ||
+                        el.classList.contains("app") ||
+                        el.classList.contains("fillable") ||
                         el.closest("#floating-toggle-container") ||
                         el.closest("#wan2gp-modal-container") ||
                         el.closest("#wan2gp-picker-overlay")
                     ) {
                         return false;
+                    }
+                    if (!el.classList.contains("accordion") && el.tagName !== "DETAILS" && (el.classList.contains("row") || el.classList.contains("column"))) {
+                        if (el.querySelector(".tabs, .tabitem, [role='tablist']")) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+                // Prune outer row/column if an inner row/column was also matched, preventing layout bubbling
+                return list.filter(el => {
+                    if (el.classList.contains("row") || el.classList.contains("column")) {
+                        return !list.some(other => other !== el && (other.classList.contains("row") || other.classList.contains("column")) && el.contains(other));
                     }
                     return true;
                 });
@@ -863,14 +879,29 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 // 3. Button Text matching
                 if (target.buttonText) {
                     const btnTexts = Array.isArray(target.buttonText) ? target.buttonText : [target.buttonText];
-                    const allBtns = Array.from(document.querySelectorAll("button"));
+                    const allBtns = Array.from(document.querySelectorAll("button, input[type='button'], input[type='submit']"));
                     btnTexts.forEach(bt => {
                         const normBt = bt.toLowerCase().replace(/\s+/g, ' ').trim();
                         if (!normBt) return;
                         allBtns.forEach(btn => {
-                            const txt = (btn.innerText || btn.textContent || "").toLowerCase().replace(/\s+/g, ' ').trim();
-                            if (txt === normBt || txt.includes(normBt)) {
-                                const comp = btn.closest("div[id^='component-'], div[id^='wangp'], button[id^='component-'], .block, .form") || btn;
+                            const txt = (btn.innerText || btn.textContent || btn.value || "").toLowerCase().replace(/\s+/g, ' ').trim();
+                            const isMatch = (txt === normBt) || (normBt.length > 5 && txt.includes(normBt));
+                            if (isMatch) {
+                                if (target.id === "presets_dropdown" || normBt === "apply" || normBt.includes("go ahead save") || normBt.includes("go ahead delete")) {
+                                    const presetRow = btn.closest(".row")?.parentElement?.closest(".row");
+                                    if (presetRow) {
+                                        found.add(presetRow);
+                                        return;
+                                    }
+                                }
+                                if (target.id === "settings_buttons" || target.id === "enhance_prompt" || target.id === "lora_url") {
+                                    const enclosingRow = btn.closest(".row, .gr-group, div[class*='group']");
+                                    if (enclosingRow) {
+                                        found.add(enclosingRow);
+                                        return;
+                                    }
+                                }
+                                const comp = btn.closest(".block, div[id^='wangp'], .accordion, details, .form, fieldset, .row") || btn;
                                 found.add(comp);
                             }
                         });
@@ -883,16 +914,29 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 // 4. Labels matching (fallback only when explicit IDs and selectors were not found)
                 if (target.labels && target.labels.length > 0) {
                     const labelCandidates = Array.from(document.querySelectorAll(
-                        "span[data-testid='block-info'], label[data-testid='block-label'], label, button.label-wrap"
+                        "span[data-testid='block-info'], label[data-testid='block-label'], label, button.label-wrap, .label-wrap, summary, .accordion, details, input[aria-label], select[aria-label], textarea[aria-label], input[placeholder], textarea[placeholder]"
                     ));
                     target.labels.forEach(lbl => {
                         const term = lbl.toLowerCase().replace(/\s+/g, ' ').trim();
                         if (!term || term.length < 3) return;
                         labelCandidates.forEach(node => {
+                            const aria = (node.getAttribute && node.getAttribute("aria-label")) ? node.getAttribute("aria-label").toLowerCase().replace(/\s+/g, ' ').trim() : "";
+                            const ph = (node.getAttribute && node.getAttribute("placeholder")) ? node.getAttribute("placeholder").toLowerCase().replace(/\s+/g, ' ').trim() : "";
                             const txt = (node.innerText || node.textContent || "").toLowerCase().replace(/\s+/g, ' ').trim();
-                            const isMatch = (txt === term) || (txt.startsWith(term + " ") || txt.endsWith(" " + term) || txt.includes(" " + term + " "));
+                            const isMatch = (txt === term) || (txt.startsWith(term + " ") || txt.endsWith(" " + term) || txt.includes(" " + term + " ")) ||
+                                            (term.length >= 6 && txt.includes(term)) ||
+                                            (aria === term) || (aria.startsWith(term + " ") || aria.endsWith(" " + term) || aria.includes(" " + term + " ")) ||
+                                            (term.length >= 6 && aria.includes(term)) ||
+                                            (ph === term) || (ph.startsWith(term + " ") || ph.endsWith(" " + term) || ph.includes(" " + term + " "));
                             if (isMatch) {
-                                const comp = node.closest("div[id^='component-'], div[id^='wangp'], button[id^='component-'], .block, .form, fieldset") || node;
+                                if (target.id === "lora_url" || target.id === "enhance_prompt" || target.id === "settings_buttons") {
+                                    const enclosingRow = node.closest(".row, .gr-group, div[class*='group']");
+                                    if (enclosingRow) {
+                                        found.add(enclosingRow);
+                                        return;
+                                    }
+                                }
+                                const comp = node.closest(".block, div[id^='wangp'], .accordion, details, .form, fieldset") || node;
                                 found.add(comp);
                             }
                         });
@@ -905,11 +949,14 @@ class MobileTogglePlugin(WAN2GPPlugin):
                 // 5. Fallback: match by target.name
                 if (target.name) {
                     const term = target.name.toLowerCase().replace(/\s+/g, ' ').trim();
-                    const allLabels = Array.from(document.querySelectorAll("span[data-testid='block-info'], label[data-testid='block-label'], label, button.label-wrap"));
+                    const allLabels = Array.from(document.querySelectorAll(
+                        "span[data-testid='block-info'], label[data-testid='block-label'], label, button.label-wrap, .label-wrap, summary, input[aria-label], select[aria-label], textarea[aria-label]"
+                    ));
                     for (const lbl of allLabels) {
+                        const aria = (lbl.getAttribute && lbl.getAttribute("aria-label")) ? lbl.getAttribute("aria-label").toLowerCase().replace(/\s+/g, ' ').trim() : "";
                         const txt = (lbl.textContent || "").toLowerCase().replace(/\s+/g, ' ').trim();
-                        if (txt === term || txt.startsWith(term)) {
-                            const comp = lbl.closest("div[id^='component-'], div[id^='wangp'], .wangp-studio-field, .block, .form");
+                        if (txt === term || txt.startsWith(term) || aria === term || aria.startsWith(term)) {
+                            const comp = lbl.closest(".block, div[id^='wangp'], .accordion, details, .wangp-studio-field, .form");
                             if (comp) {
                                 found.add(comp);
                                 break;

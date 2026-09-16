@@ -4,12 +4,57 @@ All notable changes to the **Wan2GP HideUI Plugin** are documented in this file.
 
 ---
 
+## [4.5.3] - 2026-09-15
+
+### Fixed
+- **Media Info / Late Post Processing Accordion Filter Exemption**: In `filterSafeTargets`, tabs detection previously rejected any element containing tabs to protect top-level page rows. Because the "Media Info / Late Post Processing / Import Media" accordion embeds internal sub-tabs (`video_info_tabs`), it was being rejected. Restricted the sub-tabs rejection check strictly to layout `.row` and `.column` containers, allowing accordions and details containing internal tabs to toggle properly.
+
+---
+
+## [4.5.2] - 2026-09-15
+
+### Fixed
+- **Model Info & Attention Mode Full Group Targeting**: Scoped `model_info` strictly to `.header-markdown-group` (which wraps both the model description/popup button and the Attention Mode status line), eliminating child-selector conflicts that previously left Attention Mode visible.
+- **Presets Dropdown Target Resolution**: Keyed presets row targeting to the persistent `"Apply"` button (`buttonText: ["apply"]`) and unwrapped directly to the enclosing presets row (`.closest(".row").parentElement.closest(".row")`), bypassing hidden modal containers that are absent from initial DOM rendering.
+- **Media Drop Box Full Container**: Scoped `media_drop_box` to `.adv-media-gallery` alone (which encapsulates both the drop box gallery and `.amg-controls`), preventing the filter from pruning the gallery column and leaving only buttons hidden.
+- **Enhance Prompt Complete Row**: Added `cssSelector: ".row:has(.btn_centered)"` and row unwrapping so button "Write", dropdown "Enhance Prompt using a LLM", and checkbox "Think" hide together as a complete row.
+- **Resolution Options Complete Row**: Scoped `resolution_options` selector to `.row:has(#wangp-resolution)` so both "Category" and "Resolution Budget" hide together.
+- **Settings Buttons Complete Row**: Added row unwrapping for `"set settings as default"`, `"export settings to file"`, and `"reset settings"` so all three buttons hide together.
+- **Lora URL Complete Row**: Added selector `.row:has(input[aria-label*='Lora URL']), .group:has(input[aria-label*='Lora URL'])` and row container unwrapping so the Lora URL textbox and "Download Lora" button hide together.
+- **Media Info / Late Post Processing Accordion**: Added substring label matching for labels containing slashes and added exact label `"media info / late post processing / import media"`, successfully targeting the accordion container.
+- **Smart Pruning in `filterSafeTargets`**: Restricted parent pruning strictly to `.row` and `.column` containers, ensuring component wrappers and groups are never unintentionally stripped.
+
+---
+
+## [4.5.1] - 2026-09-15
+
+### Fixed
+- **Media Drop Box Layout Isolation**: Removed `.row:has(.adv-media-gallery)` which previously matched top-level layout rows (`#component-44`) and caused the entire page to disappear. Narrowed selector strictly to `.adv-media-gallery, .amg-controls`.
+- **Input Options Full Row Scope**: Updated `input_options` selector to `.row:has(> * > .cbx_centered), .row:has(.cbx_centered), .group:has(.cbx_centered)` with innermost container matching so both the radio options ("Location") and the "End Image(s)" checkbox (`.cbx_centered`) are hidden together as a complete row.
+- **Model Info & Attention Mode**: Grouped `.header-markdown-group` into `model_info` alongside `.wangp-model-info-host`, ensuring the "Attention mode" status line and model info popup toggle together seamlessly.
+- **Presets Dropdown Target Resolution**: Added sibling selector `#image-modal-container + .row, #image-modal-container + div.row` and button text hooks (`"Go Ahead Save it !"`, `"Go Ahead Delete it !"`) that unwrap to the enclosing presets row, allowing the presets dropdown and buttons row to toggle cleanly without numeric component IDs.
+- **Page Layout Safeguards in `filterSafeTargets`**: Added checks to prevent hiding main layout rows (`component-42`, `component-44`, `.app`, `.fillable`, or any element containing tabs/tabitems), and added an innermost-element filter so broad `:has()` queries never bubble up to page-level rows.
+
+---
+
+## [4.5.0] - 2026-09-15
+
+### Added
+- **Resilient Multi-Method Resolution**: Enhanced `findTargetsForElement` in `plugin.py` to support `aria-label`, `input[placeholder]`, `data-testid="block-info"`, button text, and accordions/details. Ensures 100% reliable targeting of Gradio Dropdowns, Checkboxes, Textboxes, Sliders, and Accordions.
+- **Durable Semantic CSS Selectors**: Replaced numeric IDs with persistent semantic CSS selectors where available (`.row:has(#model_list)`, `.adv-media-gallery`, `.wangp-progress-container`, `#wangp-resolution`, `h1:has(sup)`).
+
+### Removed
+- **Zero Component-### Dependencies**: Completely purged all fragile `component-###` auto-generated Gradio IDs across `config.json`. Prevents presets and toggles from breaking when Gradio renumbers components after app updates or model switches.
+
+---
+
 ## [4.4.0] - 2026-09-15
 
 ### Added
 - **Direct-to-Disk Persistence**: Connected a Gradio backend bridge (`post_ui_setup` via `insert_after("generate_btn")`) enabling the UI to save changes directly to `config.json` on disk via Python without requiring manual export or clipboard copy-paste.
 - **Auto-Save with Visual Indicator**: Every modification (custom additions, renaming, deletion, reordering, preset switching, per-element 1/2/3 preset toggles, and "Save to Preset") automatically debounces and writes directly to `config.json`, displaying a sleek `✓ Saved to config.json` status pill.
 - **Reload from Disk Action**: Added a **🔄 Reload Disk** button in Edit Mode that queries Python to re-read `config.json` fresh from disk on demand, allowing instant hot-reloading if edited externally in a text editor.
+- **Clean Element ID Standardization**: Renamed all element IDs across `config.json` (element definitions, presets 1/2/3, and display order) to match their friendly display names directly (e.g., `header` → `title`, `model_selection` → `model_selector`, `res_group` → `resolution_options`, `inf_steps` → `inference_steps`, `frames` → `number_of_frames`, `load_vid` → `load_from_video_settings`, `late_post_processing` → `model_info_late_post_processing`).
 
 ### Removed
 - **Browser LocalStorage Layer**: Eliminated reliance on browser `localStorage` for configuration (`custom`, `order`, `presets`, `prefs`, `activePreset`). Automatically purges legacy browser keys on launch so that `config.json` is always the single source of truth across all devices and browsers.
